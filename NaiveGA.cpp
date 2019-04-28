@@ -9,10 +9,13 @@ void NaiveGA::_generateInitGene() {
 
 void NaiveGA::_fitnessCal() {
     uint32_t* pGene = _gene;
-    double_t* pFitness = _fitness;
-    double_t* pCFitness = _cumulateFitness;
+    uint32_t* pFitness = _fitness;
+    uint32_t* pCFitness = _cumulateFitness;
     for(uint32_t i = 0; i < _num; i++) {
-        *pFitness = 1 / ((*pGene) * (*pGene) + 0.001);
+        *pFitness = 1000 - (*pGene);
+        if(*pFitness > 1000) {
+            *pFitness = 0;
+        }
 
         if(*pFitness > _maxFitness) {
             _maxFitness = *pFitness;
@@ -45,8 +48,8 @@ void NaiveGA::evaluate(uint32_t iterations, uint32_t &bestGene, double_t &bestFi
         bestGene = _bestGene;
         bestFitness = _maxFitness;
         for (uint32_t child = 0; child < _num; child += 2) {
-            double_t rand1 = drand48() * _cumulateFitness[_num - 1];
-            double_t rand2 = drand48() * _cumulateFitness[_num - 1];
+            uint32_t rand1 = random() % _cumulateFitness[_num - 1];
+            uint32_t rand2 = random() % _cumulateFitness[_num - 1];
             uint32_t parent1 = _gene[
                     std::lower_bound(_cumulateFitness, _cumulateFitness + _num, rand1) - _cumulateFitness
             ];

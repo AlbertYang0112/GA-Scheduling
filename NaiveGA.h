@@ -12,9 +12,9 @@ class NaiveGA: public GA {
 private:
     uint32_t _num;      // The size of population
     uint32_t* _gene;    // Point to the memory storing all the gene
-    double_t* _fitness;   // Point to the memory storing the corresponding fitness
-    double_t* _cumulateFitness;   // Cumulation of the fitness
-    double_t _maxFitness;
+    uint32_t * _fitness;   // Point to the memory storing the corresponding fitness
+    uint32_t * _cumulateFitness;   // Cumulation of the fitness
+    uint32_t _maxFitness;
     uint32_t _bestGene;
     uint32_t _crossRate;        // Scaled cross rate in range [0, RAND_MAX]
     uint32_t _mutationRate;     // Scaled mutation rate in range [0, RAND_MAX]
@@ -26,11 +26,11 @@ private:
 
 public:
     void evaluate(uint32_t iterations, uint32_t &bestGene, double_t &bestFitness) override;
-    NaiveGA(uint32_t num, double_t crossRate, double_t mutationRate) {
+    NaiveGA(uint32_t num, float_t crossRate, float_t mutationRate) {
         _num = num;
         _gene = new uint32_t [num];
-        _fitness = new double_t [num];
-        _cumulateFitness = new double_t [num];
+        _fitness = new uint32_t [num];
+        _cumulateFitness = new uint32_t [num];
         _generateInitGene();
         _crossRate = static_cast<uint32_t>(RAND_MAX * crossRate);
         _mutationRate = static_cast<uint32_t >(RAND_MAX * mutationRate);
