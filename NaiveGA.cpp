@@ -47,6 +47,9 @@ void NaiveGA::evaluate(uint32_t iterations, uint32_t &bestGene, double_t &bestFi
         _fitnessCal();
         bestGene = _bestGene;
         bestFitness = _maxFitness;
+#pragma omp parallel
+        {
+#pragma omp for
         for (uint32_t child = 0; child < _num; child += 2) {
             uint32_t rand1 = random() % _cumulateFitness[_num - 1];
             uint32_t rand2 = random() % _cumulateFitness[_num - 1];
@@ -56,21 +59,22 @@ void NaiveGA::evaluate(uint32_t iterations, uint32_t &bestGene, double_t &bestFi
             uint32_t parent2 = _gene[
                     std::lower_bound(_cumulateFitness, _cumulateFitness + _num, rand2) - _cumulateFitness
             ];
-            if(random() < _crossRate) {
+            if (random() < _crossRate) {
                 _cross(parent1, parent2, childA, childB);
             } else {
                 childA = parent1;
                 childB = parent2;
             }
-            if(random() < _mutationRate) {
+            if (random() < _mutationRate) {
                 childA = _mutation(childA);
             }
-            if(random() < _mutationRate) {
+            if (random() < _mutationRate) {
                 childB = _mutation(childB);
             }
             children[child] = childA;
             children[child + 1] = childB;
         }
+    }
         std::copy(children, children + _num, _gene);
     }
 }
