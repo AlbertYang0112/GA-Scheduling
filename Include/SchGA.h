@@ -35,9 +35,11 @@ public:
     void evaluate(uint32_t iterations,
                   uint32_t &bestGene, double &bestFitness) override;
     SchGA(uint32_t population, FLIGHT_STATE* flights, TASK* taskTable, double_t rho);
+    ~SchGA();
+    void mutationTest();
 
 private:
-    TASK_PARAMETER* _visitTask(uint32_t taskNo);
+    TASK_PARAMETER* _visitTask(uint32_t task);
 
     /*
      * Generate the initial gene sequences.
@@ -52,10 +54,13 @@ private:
     TASK *_taskTable;
     FLIGHT_STATE *_initialFlightState;
     uint32_t _population;
-    uint32_t * _gene;
+    uint32_t *_gene;
+    uint32_t *_nextGene;
     uint32_t _geneLength;
     uint32_t _bestGene;
+    double_t *_fitness;
     double_t _rho;
+    std::mt19937 _rng;
 
     DubinsPath* _path;
     uint32_t _numPath;
