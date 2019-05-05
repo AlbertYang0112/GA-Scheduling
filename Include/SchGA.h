@@ -2,6 +2,7 @@
 #define GAHW_SCHGA_H
 
 #include "GA.h"
+#include <random>
 extern "C" {
 #include "dubins.h"
 };
@@ -33,7 +34,7 @@ public:
     } FLIGHT_STATE;
 
     void evaluate(uint32_t iterations,
-                  uint32_t &bestGene, double &bestFitness) override;
+                  uint32_t &bestGene, double_t &bestFitness) override;
     SchGA(uint32_t population, FLIGHT_STATE* flights, TASK* taskTable, double_t rho);
     ~SchGA();
     void mutationTest();

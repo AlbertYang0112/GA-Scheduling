@@ -2,6 +2,9 @@
 #define GAHW_NAIVEGA_H
 
 #include "GA.h"
+#include <cstdint>
+#include <cmath>
+#include <random>
 
 class NaiveGA: public GA {
     /*
@@ -24,6 +27,9 @@ private:
     void _cross(uint32_t parentA, uint32_t parentB, uint32_t &childA, uint32_t &childB) override;
     uint32_t _mutation(uint32_t child) override;
 
+    // Random Generator
+    std::mt19937 _rng;
+
 public:
     void evaluate(uint32_t iterations, uint32_t &bestGene, double_t &bestFitness) override;
     NaiveGA(uint32_t num, float_t crossRate, float_t mutationRate) {
@@ -36,6 +42,8 @@ public:
         _mutationRate = static_cast<uint32_t >(RAND_MAX * mutationRate);
         _maxFitness = 0;
         _bestGene = 0;
+        std::random_device rd;
+        _rng.seed(rd());
     }
 };
 

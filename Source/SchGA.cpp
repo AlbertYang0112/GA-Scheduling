@@ -1,5 +1,5 @@
 #include "SchGA.h"
-#include <values.h>
+#include <cfloat>
 #include <cassert>
 
 
@@ -97,15 +97,15 @@ void SchGA::_fitnessCal() {
     flightState.flightState = new SINGLE_FLIGHT_STATE[flightState.num];
 
     DubinsPath path;
-    double_t startPoint[3];
-    double_t endPoint[3];
+    double startPoint[3];
+    double endPoint[3];
 
     double_t taskTime[_taskTable->totalNum];
     double_t totalTaskTime;
     double_t flyTime;
 
     double_t maxTime = 0;
-    auto minTime = MAXDOUBLE;
+    auto minTime = DBL_MAX;
 
 
     for(uint32_t gene = 0; gene < _population; gene++) {
@@ -204,9 +204,9 @@ void SchGA::_cross(uint32_t parentA, uint32_t parentB,
 
 
     uint32_t sectionStart, sectionLen;
-    sectionStart = static_cast<uint32_t>(random()) % _geneLength;
+    sectionStart = static_cast<uint32_t>(_rng()) % _geneLength;
     // Todo: Define the length limit of the cross section as a hyper-parameter
-    sectionLen = static_cast<uint32_t>(random()) % _geneLength + 1;
+    sectionLen = static_cast<uint32_t>(_rng()) % _geneLength + 1;
 
     uint32_t crossList[_geneLength];
     for(uint32_t i = 0; i < _geneLength; i++) {
@@ -240,7 +240,7 @@ uint32_t SchGA::_mutation(uint32_t child) {
     uint32_t swapSpace[_geneLength];
     sectionStart = static_cast<uint32_t>(_rng()) % _geneLength;
     // Todo: Define the length limit of the mutation section as a hyper-parameter
-    sectionLen = static_cast<uint32_t>(random()) % _geneLength + 2;
+    sectionLen = static_cast<uint32_t>(_rng()) % _geneLength + 2;
     if(sectionStart + sectionLen <= _geneLength) {
         std::shuffle(pGene + sectionStart, pGene + sectionStart + sectionLen, _rng);
     } else {
@@ -262,6 +262,6 @@ uint32_t SchGA::_mutation(uint32_t child) {
 void SchGA::evaluate(
         uint32_t iterations,
         uint32_t &bestGene,
-        double &bestFitness) {
+        double_t &bestFitness) {
 
 }
