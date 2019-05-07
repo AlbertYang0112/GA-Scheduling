@@ -14,12 +14,12 @@
 #include <algorithm>
 #include "dubins.h"
 #include <limits.h>
-#include <functional>
+
 
 using namespace std;
-using namespace std::placeholders;
 
-typedef struct _collision_POINT {
+
+typedef struct collision_POINT {
 	double x1;
 	double y1;
 	double x2;
@@ -28,11 +28,11 @@ typedef struct _collision_POINT {
 	double theta2;
 	double t;
 	collision_POINT *next;
-}collision_POINT;
+};
 
-//typedef std::function<int(double*, double, void*)> CALL_for_dubins;
 
-typedef class COLLISION {
+
+class COLLISION {
 private:
 	typedef struct POINT {
 		double x;
@@ -85,10 +85,10 @@ private:
 		}
 
 		if (level % 2) {
-			sort(a, a + num, &cmpy);
+			sort(a, a + num, this->cmpy);
 		}
 		else {
-			sort(a, a + num, &cmpx);
+			sort(a, a + num, this->cmpx);
 		}
 		current_point = a[num / 2];
 		if (distance(&current_point, father)<min_distance) {
@@ -111,7 +111,6 @@ private:
 public:
 	collision_POINT *collision_points, *p;
 
-	DubinsPathSamplingCallback x = std::bind(&COLLISION::RecallForCollision, this, _1, _2, _3);
 
 	int RecallForCollision(double q[3], double x, void* user_data) {
 		POINT a;
@@ -134,9 +133,8 @@ public:
 		point_num = 0;
 		sample_rates = sample_rate;
 
-		//CALL_for_dubins call = std::bind(&COLLISION::RecallForCollision,this,_1,_2,_3);
 		for (int i = 0; i<path_num; i++) {
-			dubins_path_sample_many(&path[i], sample_rate, x, NULL);
+			dubins_path_sample_many(&path[i], sample_rate, this->RecallForCollision, NULL);
 		}
 		min_distance = min_radius*min_radius;
 		collision_points = NULL;
@@ -152,7 +150,7 @@ public:
 
 void show_coll(collision_POINT *a) {
 	if (a != NULL) {
-		printf("11");
+		cout << a->x1 << a->x2 << endl;
 	}
 }
 
