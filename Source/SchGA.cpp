@@ -52,9 +52,9 @@ SchGA::SchGA(
             population * (_taskTable->totalNum + _initialFlightState->num)
             ];
     _nextGene = new uint32_t[
-    population * (_taskTable->totalNum + _initialFlightState->num)
-    ];
-
+            population * (_taskTable->totalNum + _initialFlightState->num)
+            ];
+    
     // Calculate the length of the gene
     _geneLength = _taskTable->totalNum + _initialFlightState->num - 1;
     
@@ -69,7 +69,7 @@ SchGA::SchGA(
     assert(mutationRate > 0 && mutationRate < 1);
     _crossRate = crossRate * _rng.max();
     _mutationRate = mutationRate * _rng.max();
-    }
+}
 
 void SchGA::_generateInitGene() {
     uint32_t *pGene = _gene;

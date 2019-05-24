@@ -62,7 +62,6 @@ private:
     uint32_t *_nextGene;
     uint32_t _geneLength;
     uint32_t* _bestGene;
-    uint32_t* _worstGene;
     double_t _bestFitness;
     uint32_t _feasibleGeneCnt;
     uint32_t _crossRate;
