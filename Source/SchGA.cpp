@@ -54,6 +54,9 @@ SchGA::SchGA(
     population * (_taskTable->totalNum + _initialFlightState->num)
     ];
 
+    // Calculate the length of the gene
+    _geneLength = _taskTable->totalNum + _initialFlightState->num - 1;
+    
     _fitness = new double_t[_population];
 
     // Initialize the random generator
@@ -75,14 +78,15 @@ void SchGA::_generateInitGene() {
     uint32_t *pGene = _gene;
 
     // Generate the basic gene pattern
-    _geneLength = _taskTable->totalNum + _initialFlightState->num;
     uint32_t baseGene[_geneLength];
     for(uint32_t i = 0; i < _geneLength; i++) {
         baseGene[i] = i;
     }
 
-    // Shuffler
+    std::fill(_gene, _gene + _population * _geneLength, 1234);
+    std::fill(_nextGene, _nextGene + _population * _geneLength, 4321);
 
+    // Shuffle the basic gene to generate the population
     for(uint32_t gene = 0; gene < _population; gene++) {
         std::shuffle(baseGene, baseGene + _geneLength, _rng);
         std::copy(baseGene, baseGene + _geneLength, pGene);
