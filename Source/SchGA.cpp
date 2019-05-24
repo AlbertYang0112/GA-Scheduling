@@ -1,6 +1,7 @@
 #include "SchGA.h"
 #include <cfloat>
 #include <cassert>
+#include "debug.h"
 
 
 SchGA::SchGA(
@@ -110,7 +111,7 @@ void SchGA::_fitnessCal() {
     double_t maxTime = 0;
     auto minTime = DBL_MAX;
 
-
+    _feasibleGeneCnt = 0;
     for(uint32_t gene = 0; gene < _population; gene++) {
 
         // Initialize the flight state
@@ -165,6 +166,7 @@ void SchGA::_fitnessCal() {
         }
         _fitness[gene] = 0;
         if(isFeasibleSolution) {
+            _feasibleGeneCnt++;
             // Sum to get the total fitness
             pTaskTime = taskTime;
             for(uint32_t task = 0; task < _taskTable->totalNum; task++) {
@@ -263,11 +265,68 @@ uint32_t SchGA::_mutation(uint32_t child) {
     return 0;
 }
 
+void SchGA::_selectParents(uint32_t* parentsNo, uint32_t num) {
+    uint32_t selA, selB;
+    for(uint32_t i = 0; i < num; i++) {
+        selA = _rng() % _population;
+        selB = _rng() % _population;
+        if(_fitness[selA] >= _fitness[selB]) {
+            parentsNo[i] = selB;
+        }
+        else {
+            parentsNo[i] = selA;
+        }
+    }
+}
+
 void SchGA::evaluate(
         uint32_t iterations,
         uint32_t &bestGene,
         double_t &bestFitness) {
+    // Generate the initial gene
+    _generateInitGene();
+    uint32_t parentsNo[2];
+    for(uint32_t iter_cnt = 0; iter_cnt < iterations; iter_cnt++) {
+        _fitnessCal();
+        if(_feasibleGeneCnt != 0) {
+            // Preserve the best gene
+            std::copy(_bestGene, _bestGene + _geneLength, _nextGene);
+            std::copy(_bestGene, _bestGene + _geneLength, _nextGene + _geneLength);
+        }
 
+        for(uint32_t cross_cnt = 2; cross_cnt < _population; cross_cnt += 2) {
+            _selectParents(parentsNo, 2);
+            uint32_t cross_tmp = cross_cnt + 1;
+            if(_rng() < _crossRate) {
+                _cross(parentsNo[0], parentsNo[1], cross_cnt, cross_tmp);
+            } else {
+                std::copy(_gene + parentsNo[0] * _geneLength, 
+                    _gene + parentsNo[0] * _geneLength + _geneLength, 
+                    _nextGene + cross_cnt * _geneLength);
+                std::copy(_gene + parentsNo[1] * _geneLength, 
+                    _gene + parentsNo[1] * _geneLength + _geneLength, 
+                    _nextGene + cross_cnt * _geneLength + _geneLength);
+            }
+            if(_rng() < _mutationRate) {
+                _mutation(cross_cnt);
+            }
+            if(_rng() < _mutationRate) {
+                _mutation(cross_tmp);
+            }
+        }
+
+        if(iter_cnt % 50 == 0) {
+            DEBUG_BRIEF("Iteration: %d\n", iter_cnt);
+            DEBUG_BRIEF("Best Fitness %f\n", static_cast<float>(_bestFitness));
+            for(uint32_t i = 0; i < _geneLength; i++) {
+                DEBUG_BRIEF("%d ", _bestGene[i]);
+            }
+            DEBUG_BRIEF("\n");
+        }
+        std::swap(_gene, _nextGene);
+    }
+    bestFitness = _bestFitness;
+    bestGene = 0;
 }
 
 SchGA::~SchGA() {
