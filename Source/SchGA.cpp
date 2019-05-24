@@ -12,6 +12,7 @@ SchGA::SchGA(
     assert(taskTable != nullptr);
 
     // Copy the task table
+    _taskTable = new TASK;
     _taskTable->queueNum = taskTable->queueNum;
     _taskTable->totalNum = 0;
     _taskTable->taskQueue = new TASK_QUEUE[_taskTable->queueNum];
@@ -34,7 +35,9 @@ SchGA::SchGA(
 
 
     // Copy the initial flight state
+    _initialFlightState = new FLIGHT_STATE;
     _initialFlightState->num = flights->num;
+    _initialFlightState->flightState = new SINGLE_FLIGHT_STATE[_initialFlightState->num];
     std::copy(
             flights->flightState,
             flights->flightState + _initialFlightState->num,
