@@ -246,7 +246,8 @@ uint32_t SchGA::_mutation(uint32_t child) {
     uint32_t swapSpace[_geneLength];
     sectionStart = static_cast<uint32_t>(_rng()) % _geneLength;
     // Todo: Define the length limit of the mutation section as a hyper-parameter
-    sectionLen = static_cast<uint32_t>(_rng()) % _geneLength + 2;
+    sectionLen = static_cast<uint32_t>(_rng()) % _geneLength + 1;
+
     if(sectionStart + sectionLen <= _geneLength) {
         std::shuffle(pGene + sectionStart, pGene + sectionStart + sectionLen, _rng);
     } else {
