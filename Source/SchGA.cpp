@@ -7,7 +7,10 @@ SchGA::SchGA(
         uint32_t population,
         SchGA::FLIGHT_STATE *flights,
         SchGA::TASK *taskTable,
-        double_t rho):_rho(rho), _population(population) {
+        double_t rho,
+        double_t crossRate,
+        double_t mutationRate
+        ):_rho(rho), _population(population) {
     assert(flights != nullptr);
     assert(taskTable != nullptr);
 
@@ -58,14 +61,11 @@ SchGA::SchGA(
     _rng.seed(rd());
 }
 
-SchGA::~SchGA() {
-    delete [] _fitness;
-    delete [] _gene;
-    delete [] _nextGene;
-    delete [] _initialFlightState->flightState;
-    delete _initialFlightState;
-    for(uint32_t queue = 0; queue < _taskTable->queueNum; queue++) {
-        delete [] _taskTable->taskQueue[queue].tasks;
+    // Scale the cross rate and the mutation rate
+    assert(crossRate > 0 && crossRate < 1);
+    assert(mutationRate > 0 && mutationRate < 1);
+    _crossRate = crossRate * _rng.max();
+    _mutationRate = mutationRate * _rng.max();
     }
     delete [] _taskTable->taskQueue;
     delete _taskTable;
@@ -267,4 +267,17 @@ void SchGA::evaluate(
         uint32_t &bestGene,
         double_t &bestFitness) {
 
+}
+
+SchGA::~SchGA() {
+    delete [] _fitness;
+    delete [] _gene;
+    delete [] _nextGene;
+    delete [] _initialFlightState->flightState;
+    delete _initialFlightState;
+    for(uint32_t queue = 0; queue < _taskTable->queueNum; queue++) {
+        delete [] _taskTable->taskQueue[queue].tasks;
+    }
+    delete [] _taskTable->taskQueue;
+    delete _taskTable;
 }
