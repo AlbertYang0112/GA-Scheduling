@@ -125,7 +125,7 @@ void SchGA::_fitnessCal() {
         uint32_t *pTempGene = pGene;
         for(uint32_t flight = 0; flight < flightState.num; flight++) {
             totalTaskTime = 0;
-            while(*pTempGene < _taskTable->totalNum) {
+            while(*pTempGene < _taskTable->totalNum & pTempGene != pGene + _geneLength) {
                 pTask = _visitTask(*pTempGene);
 
                 // Generate the path
