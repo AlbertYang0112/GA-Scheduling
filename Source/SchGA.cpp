@@ -62,7 +62,6 @@ SchGA::SchGA(
     // Initialize the random generator
     std::random_device rd;
     _rng.seed(rd());
-}
 
     // Scale the cross rate and the mutation rate
     assert(crossRate > 0 && crossRate < 1);
@@ -70,9 +69,6 @@ SchGA::SchGA(
     _crossRate = crossRate * _rng.max();
     _mutationRate = mutationRate * _rng.max();
     }
-    delete [] _taskTable->taskQueue;
-    delete _taskTable;
-}
 
 void SchGA::_generateInitGene() {
     uint32_t *pGene = _gene;
@@ -240,6 +236,7 @@ void SchGA::_cross(uint32_t parentA, uint32_t parentB,
         *pNextGeneA++ = crossList[*pGeneA++];
         *pNextGeneB++ = crossList[*pGeneB++];
     }
+
 }
 uint32_t SchGA::_mutation(uint32_t child) {
     uint32_t *pGene = _nextGene + _geneLength * child;
