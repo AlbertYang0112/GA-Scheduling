@@ -174,27 +174,16 @@ void SchGA::_fitnessCal() {
             }
             if(_fitness[gene] > maxTime) {
                 maxTime = _fitness[gene];
-            } else if(_fitness[gene] < minTime) {
+            } 
+            if(_fitness[gene] < minTime) {
                 minTime = _fitness[gene];
-                _bestGene = *pGene;
+                _bestGene = pGene;
+                _bestFitness = _fitness[gene];
             }
         } else {
-            // Set the fitness of the infeasible solution to -1.
-            // We do not set the fitness directly to 0 in case of
-            // there exist a solution whose fitness is exactly 0.
-            _fitness[gene] = -1;
+            _fitness[gene] = DBL_MAX;
         }
         pGene += _geneLength;
-    }
-
-    // Reverse the fitness, the higher the better.
-    // Set the fitness of the infeasible solution to 0
-    for(uint32_t gene = 0; gene < _population; gene++) {
-        if(_fitness[gene] >= 0) {
-            _fitness[gene] = maxTime - _fitness[gene];
-        } else {
-            _fitness[gene] = 0;
-        }
     }
     delete [] flightState.flightState;
 }
