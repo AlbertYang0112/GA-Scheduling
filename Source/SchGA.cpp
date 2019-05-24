@@ -1,13 +1,14 @@
 #include "SchGA.h"
 #include <cfloat>
 #include <cassert>
+#include "Descriptor.h"
 #include "debug.h"
 
 
 SchGA::SchGA(
         uint32_t population,
-        SchGA::FLIGHT_STATE *flights,
-        SchGA::TASK *taskTable,
+        FLIGHT_STATE *flights,
+        TASK *taskTable,
         double_t rho,
         double_t crossRate,
         double_t mutationRate

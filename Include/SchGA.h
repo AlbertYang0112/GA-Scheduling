@@ -3,36 +3,13 @@
 
 #include "GA.h"
 #include <random>
+#include "Descriptor.h"
 extern "C" {
 #include "dubins.h"
 };
 
 class SchGA: public GA {
 public:
-    typedef struct tTASK_PARAMETER {
-        double_t deg;
-        double_t x;
-        double_t y;
-    } TASK_PARAMETER;
-    typedef struct tTASK_QUEUE {
-        uint32_t num;
-        TASK_PARAMETER *tasks;
-    } TASK_QUEUE;
-    typedef struct tTASK {
-        uint32_t queueNum;
-        uint32_t totalNum;
-        TASK_QUEUE *taskQueue;
-    } TASK;
-    typedef struct tSINGLE_FLIGHT_STATE {
-        double_t deg;
-        double_t x;
-        double_t y;
-    } SINGLE_FLIGHT_STATE;
-    typedef struct tFLIGHT_STATE {
-        uint32_t num;
-        SINGLE_FLIGHT_STATE *flightState;
-    } FLIGHT_STATE;
-
     void evaluate(uint32_t iterations,
                   uint32_t &bestGene, double_t &bestFitness) override;
     SchGA(uint32_t population, FLIGHT_STATE* flights, TASK* taskTable, double_t rho, double_t crossRate, double_t mutationRate);
@@ -74,7 +51,7 @@ private:
     uint32_t _numPath;
 };
 
-inline SchGA::TASK_PARAMETER* SchGA::_visitTask(uint32_t task) {
+inline TASK_PARAMETER* SchGA::_visitTask(uint32_t task) {
     if(task > _taskTable->totalNum) {
         return nullptr;
     }

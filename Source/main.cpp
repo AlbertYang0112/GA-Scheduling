@@ -1,5 +1,6 @@
 #include <iostream>
 #include <iomanip>
+#include "Descriptor.h"
 #include "NaiveGA.h"
 #include "SchGA.h"
 
@@ -24,9 +25,9 @@ void NaiveGADemo() {
 
 void SchGADemo() {
     // Task and flight descriptor
-    SchGA::TASK_PARAMETER taskParameter[2][3];
-    SchGA::TASK_QUEUE taskQueue[2];
-    SchGA::TASK task;
+    TASK_PARAMETER taskParameter[2][3];
+    TASK_QUEUE taskQueue[2];
+    TASK task;
 
     taskParameter[0][0].x = 1;
     taskParameter[0][0].y = 1;
@@ -57,8 +58,8 @@ void SchGADemo() {
     task.totalNum = 6;
     task.taskQueue = taskQueue;
     
-    SchGA::SINGLE_FLIGHT_STATE singleFlightState[1];
-    SchGA::FLIGHT_STATE flightState;
+    SINGLE_FLIGHT_STATE singleFlightState[1];
+    FLIGHT_STATE flightState;
     singleFlightState[0].x = 1010;
     singleFlightState[0].y= 1010;
     singleFlightState[0].deg= 0;
