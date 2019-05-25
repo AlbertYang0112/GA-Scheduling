@@ -28,4 +28,10 @@ typedef struct tFLIGHT_STATE {
     SINGLE_FLIGHT_STATE *flightState;
 } FLIGHT_STATE;
 
+void createTask(TASK* task, uint32_t queueNum, const uint32_t queueLen);
+void createTask(TASK* task, uint32_t queueNum, const uint32_t* queueLen);
+void destructTask(TASK* task);
+void createFlight(FLIGHT_STATE* flightState, uint32_t flightNum);
+void destructFlight(FLIGHT_STATE* flightState);
+
 #endif
