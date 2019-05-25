@@ -10,10 +10,11 @@
 #include <algorithm>
 using namespace std;
 
-KD_tree::KD_tree(int num, Point* points)
+KD_tree::KD_tree(int num, double time_interval, Point* points)
 {
 	this->KD=points;
 	this->length=num;
+	this->interval=time_interval;
 	build(0, num-1, 0);
 	cout<<endl;
 }
@@ -102,8 +103,8 @@ Point KD_tree::find_near(Point a, int layer, int start, int end, bool log){
 			best_now=distance(son2,a);
 		}
 	}
-	if(current.affiliate==a.affiliate)
-		current=far_point;
+//	if(current.affiliate==a.affiliate)
+//		current=far_point;
 	if(distance(current,a)<best_now)
 		return current;
 	else
@@ -134,12 +135,18 @@ void KD_tree::point_sort(int start, int end, int dim, Point* points){
 }
 
 double KD_tree::distance(Point a, Point b, int layer){
+	//distance to point
 	if(layer==-1){
 		double dis=0;
 		dis=(a.x-b.x)*(a.x-b.x)+(a.y-b.y)*(a.y-b.y);
 		dis=sqrt(dis);
+		if(a.affiliate==b.affiliate)
+			dis=LONG_MAX;
+		if(abs(a.t-b.t)>interval)
+			dis=LONG_MAX;
 		return dis;
 	}
+	//distance to plane
 	else{
 		double dis=0;
 		if(layer%2==0)

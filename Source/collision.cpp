@@ -50,7 +50,7 @@ Collision::Collision(DubinsPath* path, int num_path, double sample, double min_d
 		who=i;
 		dubins_path_sample_many( &path[i], sample_rate, recall_for_dubins, this);
 	}
-	KD=new KD_tree(point_num, points);
+	KD=new KD_tree(point_num, sample, points);
 	Point temp;
 	for(int i=0;i<point_num;i++){
 		temp=KD->find(points[i]);

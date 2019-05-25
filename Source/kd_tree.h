@@ -26,14 +26,15 @@ class KD_tree{
 private:
 	Point* KD;
 	int length;
-	static double distance(Point a, Point b, int layer=-1);
+	double interval;
+	double distance(Point a, Point b, int layer=-1);
 	static bool cmpx(Point a, Point b);
 	static bool cmpy(Point a, Point b);
 	static void point_sort(int start, int end, int dim, Point* points);
 	void build(int start, int end, int layer);
 	Point find_near(Point a, int layer, int start, int end, bool log=false);
 public:
-	KD_tree(int num, Point* points);
+	KD_tree(int num, double interval, Point* points);
 	Point find(Point a, bool log=false);
 	~KD_tree();
 };
