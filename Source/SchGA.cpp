@@ -285,7 +285,7 @@ void SchGA::evaluate(
             std::copy(_bestGene, _bestGene + _geneLength, _nextGene + _geneLength);
         }
 
-        for(uint32_t cross_cnt = 2; cross_cnt < _population; cross_cnt += 2) {
+        for(uint32_t cross_cnt = (_feasibleGeneCnt == 0 ? 0 : 2); cross_cnt < _population; cross_cnt += 2) {
             _selectParents(parentsNo, 2);
             uint32_t cross_tmp = cross_cnt + 1;
             if(_rng() < _crossRate) {
