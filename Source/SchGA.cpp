@@ -308,11 +308,18 @@ void SchGA::evaluate(
 
         if(iter_cnt % 50 == 0) {
             DEBUG_BRIEF("Iteration: %d\n", iter_cnt);
-            DEBUG_BRIEF("Best Fitness %f\n", static_cast<float>(_bestFitness));
-            for(uint32_t i = 0; i < _geneLength; i++) {
-                DEBUG_BRIEF("%d ", _bestGene[i]);
+            DEBUG_BRIEF("Feasible Gene: %d\n", _feasibleGeneCnt);
+            if(_feasibleGeneCnt != 0) {
+                DEBUG_BRIEF("Best Fitness %f\n", static_cast<float>(_bestFitness));
+                for(uint32_t i = 0; i < _geneLength; i++) {
+                    if(_bestGene[i] < _taskTable->totalNum) {
+                        DEBUG_BRIEF("%d ", _bestGene[i]);
+                    } else {
+                        DEBUG_BRIEF("S ");
+                    }
+                }
+                DEBUG_BRIEF("S\n");
             }
-            DEBUG_BRIEF("\n");
         }
         std::swap(_gene, _nextGene);
     }

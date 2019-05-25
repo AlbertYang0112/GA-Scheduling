@@ -1,8 +1,11 @@
 #include <iostream>
 #include <iomanip>
+#include <exception>
 #include "Descriptor.h"
 #include "NaiveGA.h"
 #include "SchGA.h"
+#include "TestGenerator.h"
+#include "debug.h"
 
 void NaiveGADemo() {
     /* Population Size 100
@@ -23,7 +26,7 @@ void NaiveGADemo() {
               << maxFit << std::endl;
 }
 
-void SchGADemo() {
+void SchGADemoStatic() {
     // Task and flight descriptor
     TASK_PARAMETER taskParameter[2][3];
     TASK_QUEUE taskQueue[2];
@@ -82,9 +85,113 @@ void SchGADemo() {
     std::cout << std::endl;
 }
 
+void SchGADemoRandom() {
+    // Configurations
+    // Task and flight
+    const uint32_t MAX_FLIGHT_NUM = 2;
+    const uint32_t MIN_FLIGHT_NUM = 1;
+    const uint32_t MAX_TASK_QUEUE_NUM = 50;
+    const uint32_t MIN_TASK_QUEUE_NUM = 10;
+    const uint32_t MAX_TASK_QUEUE_LEN = 3;
+    const uint32_t MIN_TASK_QUEUE_LEN = 3;
+    const double_t RHO = 5;
+    // GA
+    const uint32_t POPULATION = 1000;
+    const uint32_t ITERATIONS = 1000;
+    const double_t MUTATION_RATE = 0.1;
+    const double_t CROSS_RATE = 0.7;
+    TASK task;
+    FLIGHT_STATE flightState;
+
+    // Random Number Generator
+    std::random_device rd;
+    std::mt19937 rng;
+    rng.seed(rd());
+
+    // Generate the random task and flight configuration
+    uint32_t queueNum;
+    uint32_t* queueLen = new uint32_t[queueNum];
+    uint32_t taskSum = 0;
+    uint32_t flightNum;
+    char acceptRecv;
+
+    while (true) {
+        printf("123");
+        queueNum = rng() % (MAX_TASK_QUEUE_NUM - MIN_TASK_QUEUE_NUM + 1) + MIN_TASK_QUEUE_NUM;
+        for(uint32_t queueNo = 0; queueNo < queueNum; queueNo++) {
+            queueLen[queueNo] = rng() % (MAX_TASK_QUEUE_LEN - MIN_TASK_QUEUE_LEN + 1) + MIN_TASK_QUEUE_LEN;
+            taskSum += queueLen[queueNo];
+        }
+        flightNum = rng() % (MAX_FLIGHT_NUM - MIN_FLIGHT_NUM + 1) + MIN_FLIGHT_NUM;
+
+        printf(
+            "Test configuration:\n" \
+            "\tFlight Num: %d\n" \
+            "\tTask Queue Num: %d\tTotal Task Num: %d\n" \
+            "\tTask Queue Len: ", 
+            flightNum, queueNum, taskSum
+        );
+        for(uint32_t queueNo = 0; queueNo < queueNum; queueNo++) {
+            printf("%d ", queueLen[queueNo]);
+        }
+        printf("\n\tAccept?(y/n) ");
+        break;
+        scanf("%c", &acceptRecv);
+        if(acceptRecv == 'Y' | acceptRecv == 'y') break;
+    }
+    printf(
+        "Task Scheduler Configuration:\n"\
+        "\tGA Population: %d\t Iteration: %d\n" \
+        "\tMutation Rate: %.2f\n" \
+        "\tCross Rate: %.2f\n",
+        POPULATION, ITERATIONS, 
+        static_cast<float>(MUTATION_RATE), 
+        static_cast<float>(CROSS_RATE)
+    );
+
+    createFlight(&flightState, flightNum);
+    createTask(&task, queueNum, queueLen);
+
+    randomFlightState(&flightState);
+    randomTask(&task);
+
+    delete [] queueLen;
+    
+    // The Task Scheduler
+    SchGA schGA(POPULATION, &flightState, &task, RHO, CROSS_RATE, MUTATION_RATE);
+    uint32_t fillBlank;
+    double_t bestFitness;
+    // Run
+    // schGA.evaluate(ITERATIONS, fillBlank, bestFitness);
+    try {
+        schGA.evaluate(ITERATIONS, fillBlank, bestFitness);
+    } catch(std::exception& e) {
+        printf("Exception: %s\n", e.what());
+        destructTask(&task);
+        destructFlight(&flightState);
+        return;
+    }
+
+    // Collect the Result
+    const uint32_t* bestGene = schGA.getBestGene();
+    uint32_t geneLength = schGA.getGeneLength();
+    printf("Best Fitness: %f\nBest Task Sequence: ", static_cast<float>(bestFitness));
+    for(uint32_t i = 0; i < geneLength; i++) {
+        if(bestGene[i] < taskSum) {
+            printf("%d ", bestGene[i]);
+        }
+        else {
+            printf("S ");
+        }
+    }
+    printf("S\n");
+    destructTask(&task);
+    destructFlight(&flightState);
+}
+
 int main() {
     std::cout << "Start" << std::endl;
-    SchGADemo();
+    SchGADemoRandom();
     std::cout << "Done" << std::endl;
 
     return 0;
