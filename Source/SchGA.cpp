@@ -121,12 +121,14 @@ void SchGA::_fitnessCal() {
                 flightState.flightState
                 );
 
+        double_t tempMaxTime = 0;
+
         std::fill(taskTime, taskTime + _taskTable->totalNum, 0);
 
         uint32_t *pTempGene = pGene;
         for(uint32_t flight = 0; flight < flightState.num; flight++) {
             totalTaskTime = 0;
-            while(*pTempGene < _taskTable->totalNum & pTempGene != pGene + _geneLength) {
+            while(*pTempGene < _taskTable->totalNum && pTempGene != pGene + _geneLength) {
                 pTask = _visitTask(*pTempGene);
 
                 // Generate the path
@@ -144,8 +146,12 @@ void SchGA::_fitnessCal() {
                 flyTime = dubins_path_length(&path);
                 totalTaskTime += flyTime;
                 taskTime[*pTempGene] = totalTaskTime;
+                if(totalTaskTime > tempMaxTime) {
+                    tempMaxTime = totalTaskTime;
+                }
                 pTempGene++;
             }
+            pTempGene++;
         }
 
         // Sequence Constrain
@@ -168,15 +174,16 @@ void SchGA::_fitnessCal() {
         _fitness[gene] = 0;
         if(isFeasibleSolution) {
             _feasibleGeneCnt++;
-            // Sum to get the total fitness
-            pTaskTime = taskTime;
-            for(uint32_t task = 0; task < _taskTable->totalNum; task++) {
-                _fitness[gene] += *pTaskTime++;
-            }
+            _fitness[gene] = tempMaxTime;
             if(_fitness[gene] > maxTime) {
                 maxTime = _fitness[gene];
             } 
             if(_fitness[gene] < minTime) {
+                //DEBUG("UPDATE MINTIME\nTASK FINISHED TIME: ");
+                //for(uint32_t iii = 0; iii < _taskTable->totalNum; iii++) {
+                //    DEBUG_BRIEF("%.2f ", taskTime[iii]);
+                //}
+                //DEBUG_BRIEF("\n");
                 minTime = _fitness[gene];
                 _bestGene = pGene;
                 _bestFitness = _fitness[gene];
@@ -307,10 +314,15 @@ void SchGA::evaluate(
         }
 
         if(iter_cnt % 50 == 0) {
+            double_t avg = fitnessAverage();
             DEBUG_BRIEF("Iteration: %d\n", iter_cnt);
             DEBUG_BRIEF("Feasible Gene: %d\n", _feasibleGeneCnt);
+            if(avg != DBL_MAX) {
+                DEBUG_BRIEF("Fitness Average: %f\n", static_cast<double>(avg));
+                DEBUG_BRIEF("Fitness Variance: %f\n", static_cast<double>(fitnessVar()));
+            }
             if(_feasibleGeneCnt != 0) {
-                DEBUG_BRIEF("Best Fitness %f\n", static_cast<float>(_bestFitness));
+                DEBUG_BRIEF("Best Fitness %f\n", static_cast<double>(_bestFitness));
                 for(uint32_t i = 0; i < _geneLength; i++) {
                     if(_bestGene[i] < _taskTable->totalNum) {
                         DEBUG_BRIEF("%d ", _bestGene[i]);
@@ -325,6 +337,35 @@ void SchGA::evaluate(
     }
     bestFitness = _bestFitness;
     bestGene = 0;
+}
+
+double_t SchGA::fitnessAverage() {
+    double_t fitnessSum = 0;
+    uint32_t cnt = 0;
+    for(uint32_t i = 0; i < _population; i++) {
+        if(_fitness[i] != DBL_MAX) {
+            fitnessSum += _fitness[i];
+            cnt++;
+        }
+    }
+    if(cnt == 0) return DBL_MAX;
+    return fitnessSum / cnt;
+}
+
+double_t SchGA::fitnessVar() {
+    double_t fitnessAvg = fitnessAverage();
+
+    if(fitnessAvg == DBL_MAX) return DBL_MAX;
+
+    double_t fitnessVarSum = 0;
+    uint32_t cnt = 0;
+    for(uint32_t i = 0; i < _population; i++) {
+        if(_fitness[i] != DBL_MAX) {
+            fitnessVarSum += (_fitness[i] - fitnessAvg) * (_fitness[i] - fitnessAvg);
+            cnt++;
+        }
+    }
+    return fitnessVarSum / cnt;
 }
 
 SchGA::~SchGA() {

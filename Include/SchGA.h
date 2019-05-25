@@ -17,6 +17,8 @@ public:
     void mutationTest();
     const uint32_t *getBestGene();
     uint32_t getGeneLength();
+    double_t fitnessAverage();
+    double_t fitnessVar();
 
 private:
     TASK_PARAMETER* _visitTask(uint32_t task);

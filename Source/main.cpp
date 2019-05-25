@@ -1,6 +1,7 @@
 #include <iostream>
 #include <iomanip>
 #include <exception>
+#include <cfloat>
 #include "Descriptor.h"
 #include "NaiveGA.h"
 #include "SchGA.h"
@@ -96,8 +97,8 @@ void SchGADemoRandom() {
     const uint32_t MIN_TASK_QUEUE_LEN = 3;
     const double_t RHO = 5;
     // GA
-    const uint32_t POPULATION = 2000;
-    const uint32_t ITERATIONS = 10000;
+    const uint32_t POPULATION = 500;
+    const uint32_t ITERATIONS = 1000;
     const double_t MUTATION_RATE = 0.1;
     const double_t CROSS_RATE = 0.7;
     TASK task;
@@ -155,6 +156,17 @@ void SchGADemoRandom() {
     randomFlightState(&flightState);
     randomTask(&task);
 
+    /*
+    printf("Flight Data:\n");
+    for(uint32_t i = 0; i < flightNum; i++) {
+        printf("%f %f %f\n", flightState.flightState[i].x, flightState.flightState[i].y, flightState.flightState[i].deg);
+    }
+    printf("Task Data:\n");
+    for(uint32_t i = 0; i < queueNum; i++) {
+        printf("%f %f %f\n", task.taskQueue[i].tasks[0].x, task.taskQueue[i].tasks[0].y, task.taskQueue[i].tasks[0].deg);
+    }
+    */
+
     delete [] queueLen;
 
     // The Task Scheduler
@@ -174,17 +186,21 @@ void SchGADemoRandom() {
 
     // Collect the Result
     const uint32_t* bestGene = schGA.getBestGene();
-    uint32_t geneLength = schGA.getGeneLength();
-    printf("Best Fitness: %f\nBest Task Sequence: ", static_cast<float>(bestFitness));
-    for(uint32_t i = 0; i < geneLength; i++) {
-        if(bestGene[i] < taskSum) {
-            printf("%d ", bestGene[i]);
+    double_t avg = schGA.fitnessAverage();
+    if(avg != DBL_MAX) {
+        uint32_t geneLength = schGA.getGeneLength();
+        printf("Best Fitness: %f\nBest Task Sequence: ", static_cast<float>(bestFitness));
+        for (uint32_t i = 0; i < geneLength; i++) {
+            if (bestGene[i] < taskSum) {
+                printf("%d ", bestGene[i]);
+            } else {
+                printf("S ");
+            }
         }
-        else {
-            printf("S ");
-        }
+        printf("S\n");
+    } else {
+        printf("No Feasible Solution\n");
     }
-    printf("S\n");
     destructTask(&task);
     destructFlight(&flightState);
 }
