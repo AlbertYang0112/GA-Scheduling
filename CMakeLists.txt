@@ -3,6 +3,7 @@ project(GAHW)
 
 set(CMAKE_CXX_STANDARD 14)
 add_definitions(-DFLT_EVAL_METHOD=0)
+add_definitions(-D_USE_MATH_DEFINES)
 
 find_package(OpenMP)
 if (OPENMP_FOUND)
@@ -16,6 +17,8 @@ include_directories(Include)
 
 add_executable(
         GAHW Source/main.cpp
+        Source/TestGenerator.cpp
+        Source/Descriptor.cpp
         Source/GA.cpp
         Include/GA.h
         Source/NaiveGA.cpp
