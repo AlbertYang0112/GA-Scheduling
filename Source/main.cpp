@@ -60,7 +60,7 @@ void SchGADemoStatic() {
     task.queueNum = 2;
     task.totalNum = 6;
     task.taskQueue = taskQueue;
-    
+
     SINGLE_FLIGHT_STATE singleFlightState[1];
     FLIGHT_STATE flightState;
     singleFlightState[0].x = 1010;
@@ -70,10 +70,10 @@ void SchGADemoStatic() {
     flightState.flightState = singleFlightState;
 
     // Task scheduler
-    SchGA schGA(100, &flightState, &task, 0.01, 0.999, 1-0.0001);
+    SchGA schGA(2000, &flightState, &task, 0.01, 0.999, 1-0.0001);
     uint32_t aaa;
     double_t bestFitness;
-    schGA.evaluate(100, aaa, bestFitness);
+    schGA.evaluate(5000, aaa, bestFitness);
 
     const uint32_t* bestGene = schGA.getBestGene();
     uint32_t geneLength = schGA.getGeneLength();
@@ -88,16 +88,16 @@ void SchGADemoStatic() {
 void SchGADemoRandom() {
     // Configurations
     // Task and flight
-    const uint32_t MAX_FLIGHT_NUM = 2;
-    const uint32_t MIN_FLIGHT_NUM = 1;
-    const uint32_t MAX_TASK_QUEUE_NUM = 50;
-    const uint32_t MIN_TASK_QUEUE_NUM = 10;
+    const uint32_t MAX_FLIGHT_NUM = 10;
+    const uint32_t MIN_FLIGHT_NUM = 5;
+    const uint32_t MAX_TASK_QUEUE_NUM = 500;
+    const uint32_t MIN_TASK_QUEUE_NUM = 100;
     const uint32_t MAX_TASK_QUEUE_LEN = 3;
     const uint32_t MIN_TASK_QUEUE_LEN = 3;
     const double_t RHO = 5;
     // GA
-    const uint32_t POPULATION = 1000;
-    const uint32_t ITERATIONS = 1000;
+    const uint32_t POPULATION = 2000;
+    const uint32_t ITERATIONS = 10000;
     const double_t MUTATION_RATE = 0.1;
     const double_t CROSS_RATE = 0.7;
     TASK task;
@@ -110,14 +110,14 @@ void SchGADemoRandom() {
 
     // Generate the random task and flight configuration
     uint32_t queueNum;
-    uint32_t* queueLen = new uint32_t[queueNum];
+    uint32_t* queueLen;
     uint32_t taskSum = 0;
     uint32_t flightNum;
     char acceptRecv;
 
     while (true) {
-        printf("123");
         queueNum = rng() % (MAX_TASK_QUEUE_NUM - MIN_TASK_QUEUE_NUM + 1) + MIN_TASK_QUEUE_NUM;
+        queueLen = new uint32_t[queueNum];
         for(uint32_t queueNo = 0; queueNo < queueNum; queueNo++) {
             queueLen[queueNo] = rng() % (MAX_TASK_QUEUE_LEN - MIN_TASK_QUEUE_LEN + 1) + MIN_TASK_QUEUE_LEN;
             taskSum += queueLen[queueNo];
@@ -128,24 +128,24 @@ void SchGADemoRandom() {
             "Test configuration:\n" \
             "\tFlight Num: %d\n" \
             "\tTask Queue Num: %d\tTotal Task Num: %d\n" \
-            "\tTask Queue Len: ", 
+            "\tTask Queue Len: ",
             flightNum, queueNum, taskSum
         );
         for(uint32_t queueNo = 0; queueNo < queueNum; queueNo++) {
             printf("%d ", queueLen[queueNo]);
         }
         printf("\n\tAccept?(y/n) ");
-        break;
         scanf("%c", &acceptRecv);
         if(acceptRecv == 'Y' | acceptRecv == 'y') break;
+        delete [] queueLen;
     }
     printf(
         "Task Scheduler Configuration:\n"\
         "\tGA Population: %d\t Iteration: %d\n" \
         "\tMutation Rate: %.2f\n" \
         "\tCross Rate: %.2f\n",
-        POPULATION, ITERATIONS, 
-        static_cast<float>(MUTATION_RATE), 
+        POPULATION, ITERATIONS,
+        static_cast<float>(MUTATION_RATE),
         static_cast<float>(CROSS_RATE)
     );
 
@@ -156,7 +156,7 @@ void SchGADemoRandom() {
     randomTask(&task);
 
     delete [] queueLen;
-    
+
     // The Task Scheduler
     SchGA schGA(POPULATION, &flightState, &task, RHO, CROSS_RATE, MUTATION_RATE);
     uint32_t fillBlank;
