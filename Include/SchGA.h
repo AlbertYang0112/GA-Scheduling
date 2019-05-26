@@ -33,8 +33,10 @@ private:
     void _cross(uint32_t parentA, uint32_t parentB, uint32_t &childA, uint32_t &childB) override;
     uint32_t _mutation(uint32_t child) override;
     void _selectParents(uint32_t* parentsNo, uint32_t num);
+    double_t _timeCompute(double_t* timeStamp, uint32_t* filghtNo);
 
     TASK *_taskTable;
+    TASK_PARAMETER *_taskParamTable;
     FLIGHT_STATE *_initialFlightState;
     uint32_t _population;
     uint32_t *_gene;
@@ -57,12 +59,13 @@ inline TASK_PARAMETER* SchGA::_visitTask(uint32_t task) {
     if(task > _taskTable->totalNum) {
         return nullptr;
     }
-    TASK_QUEUE *pQueue = _taskTable->taskQueue;
-    while(task >= pQueue->num) {
-        task -= pQueue->num;
-        pQueue++;
-    }
-    return (pQueue->tasks + task);
+    //TASK_QUEUE *pQueue = _taskTable->taskQueue;
+    //while(task >= pQueue->num) {
+    //    task -= pQueue->num;
+    //    pQueue++;
+    //}
+    //return (pQueue->tasks + task);
+    return _taskParamTable + task;
 }
 
 inline const uint32_t* SchGA::getBestGene() {

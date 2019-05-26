@@ -1,7 +1,6 @@
 #ifndef __TEST_GENERATOR_H
 #define __TEST_GENERATOR_H
 
-#define _USE_MATH_DEFINES
 #include <cmath>
 #include "Descriptor.h"
 

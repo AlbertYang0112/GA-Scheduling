@@ -71,7 +71,7 @@ void SchGADemoStatic() {
     flightState.flightState = singleFlightState;
 
     // Task scheduler
-    SchGA schGA(2000, &flightState, &task, 0.01, 0.999, 1-0.0001);
+    SchGA schGA(6000, &flightState, &task, 0.01, 0.5, 0.3);
     uint32_t aaa;
     double_t bestFitness;
     schGA.evaluate(5000, aaa, bestFitness);
@@ -89,17 +89,17 @@ void SchGADemoStatic() {
 void SchGADemoRandom() {
     // Configurations
     // Task and flight
-    const uint32_t MAX_FLIGHT_NUM = 10;
+    const uint32_t MAX_FLIGHT_NUM = 5;
     const uint32_t MIN_FLIGHT_NUM = 5;
-    const uint32_t MAX_TASK_QUEUE_NUM = 500;
-    const uint32_t MIN_TASK_QUEUE_NUM = 100;
+    const uint32_t MAX_TASK_QUEUE_NUM = 30;
+    const uint32_t MIN_TASK_QUEUE_NUM = 20;
     const uint32_t MAX_TASK_QUEUE_LEN = 3;
     const uint32_t MIN_TASK_QUEUE_LEN = 3;
     const double_t RHO = 5;
     // GA
-    const uint32_t POPULATION = 500;
-    const uint32_t ITERATIONS = 1000;
-    const double_t MUTATION_RATE = 0.1;
+    const uint32_t POPULATION = 2000;
+    const uint32_t ITERATIONS = 10000;
+    const double_t MUTATION_RATE = 0.999;
     const double_t CROSS_RATE = 0.7;
     TASK task;
     FLIGHT_STATE flightState;
@@ -208,6 +208,7 @@ void SchGADemoRandom() {
 int main() {
     std::cout << "Start" << std::endl;
     SchGADemoRandom();
+    //SchGADemoStatic();
     std::cout << "Done" << std::endl;
 
     return 0;

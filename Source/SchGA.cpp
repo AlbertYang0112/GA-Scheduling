@@ -19,15 +19,18 @@ SchGA::SchGA(
     // Copy the task table
     _taskTable = new TASK;
     _taskTable->queueNum = taskTable->queueNum;
-    _taskTable->totalNum = 0;
+    _taskTable->totalNum = taskTable->totalNum;
     _taskTable->taskQueue = new TASK_QUEUE[_taskTable->queueNum];
+    _taskParamTable = new TASK_PARAMETER[_taskTable->totalNum];
     TASK_QUEUE* pSrcQueue = taskTable->taskQueue;
     TASK_QUEUE* pDstQueue = _taskTable->taskQueue;
+
+    _taskTable->totalNum = 0;
     for(uint32_t queue = 0; queue < _taskTable->queueNum; queue++) {
         pDstQueue->num = pSrcQueue->num;
-        _taskTable->totalNum += pDstQueue->num;
 
-        pDstQueue->tasks = new TASK_PARAMETER[pDstQueue->num];
+        pDstQueue->tasks = _taskParamTable + _taskTable->totalNum;
+        _taskTable->totalNum += pDstQueue->num;
         std::copy(
                 pSrcQueue->tasks,
                 pSrcQueue->tasks + pDstQueue->num,
@@ -90,6 +93,21 @@ void SchGA::_generateInitGene() {
         std::copy(baseGene, baseGene + _geneLength, pGene);
         pGene += _geneLength;
     }
+    uint32_t i = 0;
+    pGene = _gene;
+    for(uint32_t queueNo = 0; queueNo < _taskTable->queueNum; queueNo++) {
+        for(uint32_t j = 0; j <_taskTable->taskQueue[queueNo].num; j++) {
+            *pGene++ = j + i;
+        }
+        i += _taskTable->taskQueue[queueNo].num;
+        if(queueNo < _initialFlightState->num - 1)
+            *pGene++ = _taskTable->totalNum + queueNo;
+    }
+    DEBUG_BRIEF("%d\n", _geneLength);
+    for(uint32_t i = 0; i < _geneLength; i++) {
+        DEBUG_BRIEF("%d ", _gene[i]);
+    }
+    DEBUG_BRIEF("\n");
 }
 
 void SchGA::_fitnessCal() {
@@ -112,7 +130,7 @@ void SchGA::_fitnessCal() {
     double_t maxTime = 0;
     auto minTime = DBL_MAX;
 
-    _feasibleGeneCnt = 0;
+//#pragma omp parallel for num_threads(8)
     for(uint32_t gene = 0; gene < _population; gene++) {
 
         // Initialize the flight state
@@ -173,25 +191,34 @@ void SchGA::_fitnessCal() {
         }
         _fitness[gene] = 0;
         if(isFeasibleSolution) {
-            _feasibleGeneCnt++;
             _fitness[gene] = tempMaxTime;
-            if(_fitness[gene] > maxTime) {
-                maxTime = _fitness[gene];
-            } 
-            if(_fitness[gene] < minTime) {
-                //DEBUG("UPDATE MINTIME\nTASK FINISHED TIME: ");
-                //for(uint32_t iii = 0; iii < _taskTable->totalNum; iii++) {
-                //    DEBUG_BRIEF("%.2f ", taskTime[iii]);
-                //}
-                //DEBUG_BRIEF("\n");
-                minTime = _fitness[gene];
-                _bestGene = pGene;
-                _bestFitness = _fitness[gene];
-            }
+            //if(_fitness[gene] > maxTime) {
+            //    maxTime = _fitness[gene];
+            //}
+            //if(_fitness[gene] < minTime) {
+            //    minTime = _fitness[gene];
+            //    _bestGene = pGene;
+            //    _bestFitness = _fitness[gene];
+            //}
         } else {
             _fitness[gene] = DBL_MAX;
         }
         pGene += _geneLength;
+    }
+
+    _feasibleGeneCnt = 0;
+    for(uint32_t gene = 0; gene < _population; gene++) {
+        if(_fitness[gene] != DBL_MAX) {
+            _feasibleGeneCnt++;
+            if(_fitness[gene] > maxTime) {
+                maxTime = _fitness[gene];
+            }
+            if(_fitness[gene] < minTime) {
+                minTime = _fitness[gene];
+                _bestGene = _gene + gene * _geneLength;
+                _bestFitness = _fitness[gene];
+            }
+        }
     }
     delete [] flightState.flightState;
 }
@@ -290,6 +317,8 @@ void SchGA::evaluate(
             // Preserve the best gene
             std::copy(_bestGene, _bestGene + _geneLength, _nextGene);
             std::copy(_bestGene, _bestGene + _geneLength, _nextGene + _geneLength);
+            _fitness[0] = _bestFitness;
+            _fitness[1] = _bestFitness;
         }
 
         for(uint32_t cross_cnt = (_feasibleGeneCnt == 0 ? 0 : 2); cross_cnt < _population; cross_cnt += 2) {
@@ -298,7 +327,7 @@ void SchGA::evaluate(
             if(_rng() < _crossRate) {
                 _cross(parentsNo[0], parentsNo[1], cross_cnt, cross_tmp);
             } else {
-                std::copy(_gene + parentsNo[0] * _geneLength, 
+                std::copy(_gene + parentsNo[0] * _geneLength,
                     _gene + parentsNo[0] * _geneLength + _geneLength, 
                     _nextGene + cross_cnt * _geneLength);
                 std::copy(_gene + parentsNo[1] * _geneLength, 
@@ -374,9 +403,7 @@ SchGA::~SchGA() {
     delete [] _nextGene;
     delete [] _initialFlightState->flightState;
     delete _initialFlightState;
-    for(uint32_t queue = 0; queue < _taskTable->queueNum; queue++) {
-        delete [] _taskTable->taskQueue[queue].tasks;
-    }
+    delete [] _taskParamTable;
     delete [] _taskTable->taskQueue;
     delete _taskTable;
 }
