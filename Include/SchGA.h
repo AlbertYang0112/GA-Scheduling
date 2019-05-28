@@ -34,6 +34,7 @@ private:
     uint32_t _mutation(uint32_t child) override;
     void _selectParents(uint32_t* parentsNo, uint32_t num);
     double_t _timeCompute(double_t* timeStamp, uint32_t* filghtNo);
+    bool _search(bool update);
 
     TASK *_taskTable;
     TASK_PARAMETER *_taskParamTable;
@@ -41,9 +42,12 @@ private:
     uint32_t _population;
     uint32_t *_gene;
     uint32_t *_nextGene;
+    uint32_t *_searchGene;
     uint32_t _geneLength;
     uint32_t* _bestGene;
     double_t _bestFitness;
+    double_t _searchBestFitness;
+    bool _bestFitnessUpdated;
     uint32_t _feasibleGeneCnt;
     uint32_t _crossRate;
     uint32_t _mutationRate;
