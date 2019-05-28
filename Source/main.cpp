@@ -91,8 +91,8 @@ void SchGADemoRandom() {
     // Task and flight
     const uint32_t MAX_FLIGHT_NUM = 3;
     const uint32_t MIN_FLIGHT_NUM = 3;
-    const uint32_t MAX_TASK_QUEUE_NUM = 100;
-    const uint32_t MIN_TASK_QUEUE_NUM = 100;
+    const uint32_t MAX_TASK_QUEUE_NUM = 70;
+    const uint32_t MIN_TASK_QUEUE_NUM = 70;
     const uint32_t MAX_TASK_QUEUE_LEN = 3;
     const uint32_t MIN_TASK_QUEUE_LEN = 3;
     const double_t RHO = 5;

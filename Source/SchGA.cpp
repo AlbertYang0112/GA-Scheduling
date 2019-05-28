@@ -60,6 +60,7 @@ SchGA::SchGA(
             ];
 
     _bestGene = nullptr;
+    _bestFitness = DBL_MAX;
     
     // Calculate the length of the gene
     _geneLength = _taskTable->totalNum + _initialFlightState->num - 1;
@@ -319,10 +320,10 @@ void SchGA::evaluate(
 
             searchUpdated = _search(false);
             if(searchUpdated) {
-                DEBUG_BRIEF("Found a better gene by search: %f -> %f\n", _bestFitness, _searchBestFitness);
+                DEBUG_BRIEF("Found a better gene by search: %f -> %f\n", (double)_bestFitness, (double)_searchBestFitness);
             }
-            if(iter_cnt % 10 == 0) {
-                DEBUG_BRIEF("> GA %f Search %f\n", _bestFitness, _searchBestFitness);
+            if(_bestFitnessUpdated) {
+                DEBUG_BRIEF("Found a better gene by GA: %f -> %f\n", (double)_searchBestFitness, (double)_bestFitness);
             }
             if(_bestFitnessUpdated && searchUpdated) {
                 // Put the gene with better fitness to the first place
@@ -339,13 +340,20 @@ void SchGA::evaluate(
                     std::copy(_bestGene, _bestGene + _geneLength, _nextGene + _geneLength);
                     _fitness[0] = _searchBestFitness;
                     _fitness[1] = _bestFitness;
+                    _bestFitness = _searchBestFitness;
+                    _bestGene = _nextGene;
                 }
             } else if(searchUpdated) {
                 std::copy(_searchGene, _searchGene + _geneLength, _nextGene);
                 std::copy(_bestGene, _bestGene + _geneLength, _nextGene + _geneLength);
                 _fitness[0] = _searchBestFitness;
                 _fitness[1] = _bestFitness;
+                _bestFitness = _searchBestFitness;
+                _bestGene = _nextGene;
             } else {
+                if(_bestFitnessUpdated) {
+                    _search(true);
+                }
                 // Simply Preserve the best gene
                 std::copy(_bestGene, _bestGene + _geneLength, _nextGene);
                 std::copy(_bestGene, _bestGene + _geneLength, _nextGene + _geneLength);
@@ -356,6 +364,7 @@ void SchGA::evaluate(
                 _mutation(1);
             }
         }
+        _bestFitnessUpdated = false;
 
         for(uint32_t cross_cnt = (_feasibleGeneCnt == 0 ? 0 : 2); cross_cnt < _population; cross_cnt += 2) {
             _selectParents(parentsNo, 2);
@@ -403,12 +412,11 @@ void SchGA::evaluate(
             DEBUG_BRIEF("Iteration: %d\n", iter_cnt);
             DEBUG_BRIEF("Feasible Gene: %d\n", _feasibleGeneCnt);
             if(avg != DBL_MAX) {
-                DEBUG_BRIEF("Fitness Average: %f\n", avg);
-                DEBUG_BRIEF("Fitness Variance: %E\n", var);
+                DEBUG_BRIEF("Fitness Average: %f\n", static_cast<double>(avg));
+                DEBUG_BRIEF("Fitness Variance: %E\n", static_cast<double>(var));
             }
             if(_feasibleGeneCnt != 0) {
                 DEBUG_BRIEF("Best Fitness %f\n", static_cast<double>(_bestFitness));
-                DEBUG_BRIEF("Search Best Fitness %f\n", _searchBestFitness);
                 //for(uint32_t i = 0; i < _geneLength; i++) {
                 //    if(_bestGene[i] < _taskTable->totalNum) {
                 //        DEBUG_BRIEF("%d ", _bestGene[i]);
@@ -457,7 +465,7 @@ double_t SchGA::fitnessVar() {
 }
 
 bool SchGA::_search(bool update) {
-    const uint32_t SAMPLE_POINTS = 10;
+    const uint32_t SAMPLE_POINTS = _geneLength * 0.5;
     const uint32_t TABO_LIST_LEN = 5;
     static uint32_t taboListH[TABO_LIST_LEN];
     static uint32_t taboListL[TABO_LIST_LEN];
