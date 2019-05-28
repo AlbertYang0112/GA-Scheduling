@@ -89,17 +89,17 @@ void SchGADemoStatic() {
 void SchGADemoRandom() {
     // Configurations
     // Task and flight
-    const uint32_t MAX_FLIGHT_NUM = 5;
-    const uint32_t MIN_FLIGHT_NUM = 5;
-    const uint32_t MAX_TASK_QUEUE_NUM = 30;
-    const uint32_t MIN_TASK_QUEUE_NUM = 20;
+    const uint32_t MAX_FLIGHT_NUM = 3;
+    const uint32_t MIN_FLIGHT_NUM = 3;
+    const uint32_t MAX_TASK_QUEUE_NUM = 100;
+    const uint32_t MIN_TASK_QUEUE_NUM = 100;
     const uint32_t MAX_TASK_QUEUE_LEN = 3;
     const uint32_t MIN_TASK_QUEUE_LEN = 3;
     const double_t RHO = 5;
     // GA
     const uint32_t POPULATION = 2000;
     const uint32_t ITERATIONS = 10000;
-    const double_t MUTATION_RATE = 0.999;
+    const double_t MUTATION_RATE = 0.3;
     const double_t CROSS_RATE = 0.7;
     TASK task;
     FLIGHT_STATE flightState;
@@ -135,6 +135,7 @@ void SchGADemoRandom() {
         for(uint32_t queueNo = 0; queueNo < queueNum; queueNo++) {
             printf("%d ", queueLen[queueNo]);
         }
+        break;
         printf("\n\tAccept?(y/n) ");
         scanf("%c", &acceptRecv);
         if(acceptRecv == 'Y' | acceptRecv == 'y') break;
