@@ -110,14 +110,8 @@ void SchGA::_generateInitGene() {
     DEBUG_BRIEF("\n");
 }
 
-void SchGA::_fitnessCal() {
-    uint32_t *pGene = _gene;
-
+double_t SchGA::_singleFitnessCal(uint32_t* pGene) {
     TASK_PARAMETER *pTask;
-
-    FLIGHT_STATE flightState;
-    flightState.num = _initialFlightState->num;
-    flightState.flightState = new SINGLE_FLIGHT_STATE[flightState.num];
 
     DubinsPath path;
     double startPoint[3];
@@ -126,84 +120,73 @@ void SchGA::_fitnessCal() {
     double_t taskTime[_taskTable->totalNum];
     double_t totalTaskTime;
     double_t flyTime;
+    double_t tempMaxTime = 0;
 
-    double_t maxTime = 0;
-    auto minTime = DBL_MAX;
+    std::fill(taskTime, taskTime + _taskTable->totalNum, 0);
 
-//#pragma omp parallel for num_threads(8)
-    for(uint32_t gene = 0; gene < _population; gene++) {
+    uint32_t *pTempGene = pGene;
+    for(uint32_t flight = 0; flight < _initialFlightState->num; flight++) {
+        totalTaskTime = 0;
+        startPoint[0] = _initialFlightState->flightState[flight].x;
+        startPoint[1] = _initialFlightState->flightState[flight].y;
+        startPoint[2] = _initialFlightState->flightState[flight].deg;
+        while(*pTempGene < _taskTable->totalNum && pTempGene != pGene + _geneLength) {
+            pTask = _visitTask(*pTempGene);
 
-        // Initialize the flight state
-        std::copy(_initialFlightState->flightState,
-                _initialFlightState->flightState + _initialFlightState->num,
-                flightState.flightState
-                );
+            // Generate the path
+            endPoint[0] = pTask->x;
+            endPoint[1] = pTask->y;
+            endPoint[2] = pTask->deg;
+            dubins_shortest_path(&path, startPoint, endPoint, _rho);
 
-        double_t tempMaxTime = 0;
+            startPoint[0] = endPoint[0];
+            startPoint[1] = endPoint[1];
+            startPoint[2] = endPoint[2];
 
-        std::fill(taskTime, taskTime + _taskTable->totalNum, 0);
+            // Todo: Collision detection
 
-        uint32_t *pTempGene = pGene;
-        for(uint32_t flight = 0; flight < flightState.num; flight++) {
-            totalTaskTime = 0;
-            while(*pTempGene < _taskTable->totalNum && pTempGene != pGene + _geneLength) {
-                pTask = _visitTask(*pTempGene);
-
-                // Generate the path
-                // Todo: Optimize the memory access.
-                startPoint[0] = flightState.flightState->x;
-                startPoint[1] = flightState.flightState->y;
-                startPoint[2] = flightState.flightState->deg;
-                endPoint[0] = pTask->x;
-                endPoint[1] = pTask->y;
-                endPoint[2] = pTask->deg;
-                dubins_shortest_path(&path, startPoint, endPoint, _rho);
-
-                // Todo: Collision detection
-
-                flyTime = dubins_path_length(&path);
-                totalTaskTime += flyTime;
-                taskTime[*pTempGene] = totalTaskTime;
-                if(totalTaskTime > tempMaxTime) {
-                    tempMaxTime = totalTaskTime;
-                }
-                pTempGene++;
+            flyTime = dubins_path_length(&path);
+            totalTaskTime += flyTime;
+            taskTime[*pTempGene] = totalTaskTime;
+            if(totalTaskTime > tempMaxTime) {
+                tempMaxTime = totalTaskTime;
             }
             pTempGene++;
         }
+        pTempGene++;
+    }
 
-        // Sequence Constrain
-        double_t* pTaskTime = taskTime;
-        TASK_QUEUE* pTaskQueue = _taskTable->taskQueue;
-        bool isFeasibleSolution = true;
-        for(uint32_t queue = 0; queue < _taskTable->queueNum & isFeasibleSolution; queue++) {
-            totalTaskTime = 0;
-            for(uint32_t task = 0; task < pTaskQueue->num; task++) {
-                if(totalTaskTime > *pTaskTime) {
-                    // Constrain Violation Occurs
-                    isFeasibleSolution = false;
-                    break;
-                    // Todo: Add the soft-margin method
-                }
-                totalTaskTime = *pTaskTime++;
+    // Sequence Constrain
+    double_t* pTaskTime = taskTime;
+    TASK_QUEUE* pTaskQueue = _taskTable->taskQueue;
+    bool isFeasibleSolution = true;
+    for(uint32_t queue = 0; queue < _taskTable->queueNum & isFeasibleSolution; queue++) {
+        totalTaskTime = 0;
+        for(uint32_t task = 0; task < pTaskQueue->num; task++) {
+            if(totalTaskTime > *pTaskTime) {
+                // Constrain Violation Occurs
+                isFeasibleSolution = false;
+                break;
+                // Todo: Add the soft-margin method
             }
-            pTaskQueue++;
+            totalTaskTime = *pTaskTime++;
         }
-        _fitness[gene] = 0;
-        if(isFeasibleSolution) {
-            _fitness[gene] = tempMaxTime;
-            //if(_fitness[gene] > maxTime) {
-            //    maxTime = _fitness[gene];
-            //}
-            //if(_fitness[gene] < minTime) {
-            //    minTime = _fitness[gene];
-            //    _bestGene = pGene;
-            //    _bestFitness = _fitness[gene];
-            //}
-        } else {
-            _fitness[gene] = DBL_MAX;
-        }
-        pGene += _geneLength;
+        pTaskQueue++;
+    }
+    if(isFeasibleSolution) {
+        return tempMaxTime;
+    } else {
+        return DBL_MAX;
+    }
+}
+
+void SchGA::_fitnessCal() {
+    double_t maxTime = 0;
+    auto minTime = DBL_MAX;
+
+#pragma omp parallel for num_threads(8)
+    for(uint32_t gene = 0; gene < _population; gene++) {
+        _fitness[gene] = _singleFitnessCal(_gene + gene * _geneLength);
     }
 
     _feasibleGeneCnt = 0;
@@ -220,7 +203,6 @@ void SchGA::_fitnessCal() {
             }
         }
     }
-    delete [] flightState.flightState;
 }
 
 void SchGA::_cross(uint32_t parentA, uint32_t parentB,
@@ -295,11 +277,18 @@ void SchGA::_selectParents(uint32_t* parentsNo, uint32_t num) {
     for(uint32_t i = 0; i < num; i++) {
         selA = _rng() % _population;
         selB = _rng() % _population;
-        if(_fitness[selA] >= _fitness[selB]) {
-            parentsNo[i] = selB;
-        }
-        else {
-            parentsNo[i] = selA;
+        if(_rng() < _rng.max() * 0.9) {
+            if (_fitness[selA] >= _fitness[selB]) {
+                parentsNo[i] = selB;
+            } else {
+                parentsNo[i] = selA;
+            }
+        } else {
+            if (_fitness[selA] >= _fitness[selB]) {
+                parentsNo[i] = selA;
+            } else {
+                parentsNo[i] = selB;
+            }
         }
     }
 }
@@ -319,47 +308,70 @@ void SchGA::evaluate(
             std::copy(_bestGene, _bestGene + _geneLength, _nextGene + _geneLength);
             _fitness[0] = _bestFitness;
             _fitness[1] = _bestFitness;
+            if (_rng() < _mutationRate) {
+                _mutation(1);
+            }
         }
 
         for(uint32_t cross_cnt = (_feasibleGeneCnt == 0 ? 0 : 2); cross_cnt < _population; cross_cnt += 2) {
             _selectParents(parentsNo, 2);
             uint32_t cross_tmp = cross_cnt + 1;
-            if(_rng() < _crossRate) {
-                _cross(parentsNo[0], parentsNo[1], cross_cnt, cross_tmp);
-            } else {
+            if(_fitness[parentsNo[0]] == DBL_MAX || _fitness[parentsNo[1]] == DBL_MAX) {
                 std::copy(_gene + parentsNo[0] * _geneLength,
-                    _gene + parentsNo[0] * _geneLength + _geneLength, 
-                    _nextGene + cross_cnt * _geneLength);
-                std::copy(_gene + parentsNo[1] * _geneLength, 
-                    _gene + parentsNo[1] * _geneLength + _geneLength, 
-                    _nextGene + cross_cnt * _geneLength + _geneLength);
-            }
-            if(_rng() < _mutationRate) {
-                _mutation(cross_cnt);
-            }
-            if(_rng() < _mutationRate) {
-                _mutation(cross_tmp);
+                          _gene + parentsNo[0] * _geneLength + _geneLength,
+                          _nextGene + cross_cnt * _geneLength);
+                std::copy(_gene + parentsNo[1] * _geneLength,
+                          _gene + parentsNo[1] * _geneLength + _geneLength,
+                          _nextGene + cross_cnt * _geneLength + _geneLength);
+                if(_fitness[parentsNo[0]] == DBL_MAX || parentsNo[0] < 2) {
+                    _mutation(cross_cnt);
+                    _mutation(cross_cnt);
+                    _mutation(cross_cnt);
+                }
+                if(_fitness[parentsNo[1]] == DBL_MAX || parentsNo[1] < 2) {
+                    _mutation(cross_tmp);
+                    _mutation(cross_tmp);
+                    _mutation(cross_tmp);
+                }
+            } else {
+                if (_rng() < _crossRate) {
+                    _cross(parentsNo[0], parentsNo[1], cross_cnt, cross_tmp);
+                } else {
+                    std::copy(_gene + parentsNo[0] * _geneLength,
+                              _gene + parentsNo[0] * _geneLength + _geneLength,
+                              _nextGene + cross_cnt * _geneLength);
+                    std::copy(_gene + parentsNo[1] * _geneLength,
+                              _gene + parentsNo[1] * _geneLength + _geneLength,
+                              _nextGene + cross_cnt * _geneLength + _geneLength);
+                }
+                if (_rng() < _mutationRate) {
+                    _mutation(cross_cnt);
+                }
+                if (_rng() < _mutationRate) {
+                    _mutation(cross_tmp);
+                }
             }
         }
 
-        if(iter_cnt % 50 == 0) {
+        if(iter_cnt % 100 == 0) {
             double_t avg = fitnessAverage();
+            double_t var = fitnessVar();
             DEBUG_BRIEF("Iteration: %d\n", iter_cnt);
             DEBUG_BRIEF("Feasible Gene: %d\n", _feasibleGeneCnt);
             if(avg != DBL_MAX) {
-                DEBUG_BRIEF("Fitness Average: %f\n", static_cast<double>(avg));
-                DEBUG_BRIEF("Fitness Variance: %f\n", static_cast<double>(fitnessVar()));
+                DEBUG_BRIEF("Fitness Average: %f\n", avg);
+                DEBUG_BRIEF("Fitness Variance: %E\n", var);
             }
             if(_feasibleGeneCnt != 0) {
                 DEBUG_BRIEF("Best Fitness %f\n", static_cast<double>(_bestFitness));
-                for(uint32_t i = 0; i < _geneLength; i++) {
-                    if(_bestGene[i] < _taskTable->totalNum) {
-                        DEBUG_BRIEF("%d ", _bestGene[i]);
-                    } else {
-                        DEBUG_BRIEF("S ");
-                    }
-                }
-                DEBUG_BRIEF("S\n");
+                //for(uint32_t i = 0; i < _geneLength; i++) {
+                //    if(_bestGene[i] < _taskTable->totalNum) {
+                //        DEBUG_BRIEF("%d ", _bestGene[i]);
+                //    } else {
+                //        DEBUG_BRIEF("S ");
+                //    }
+                //}
+                //DEBUG_BRIEF("S\n");
             }
         }
         std::swap(_gene, _nextGene);
@@ -387,14 +399,16 @@ double_t SchGA::fitnessVar() {
     if(fitnessAvg == DBL_MAX) return DBL_MAX;
 
     double_t fitnessVarSum = 0;
+    double_t term;
     uint32_t cnt = 0;
     for(uint32_t i = 0; i < _population; i++) {
         if(_fitness[i] != DBL_MAX) {
-            fitnessVarSum += (_fitness[i] - fitnessAvg) * (_fitness[i] - fitnessAvg);
+            term = _fitness[i] - fitnessAvg;
+            fitnessVarSum += term * term;
             cnt++;
         }
     }
-    return fitnessVarSum / cnt;
+    return sqrt(fitnessVarSum / cnt);
 }
 
 SchGA::~SchGA() {

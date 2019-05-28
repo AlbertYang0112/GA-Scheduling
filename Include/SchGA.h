@@ -14,7 +14,6 @@ public:
                   uint32_t &bestGene, double_t &bestFitness) override;
     SchGA(uint32_t population, FLIGHT_STATE* flights, TASK* taskTable, double_t rho, double_t crossRate, double_t mutationRate);
     ~SchGA();
-    void mutationTest();
     const uint32_t *getBestGene();
     uint32_t getGeneLength();
     double_t fitnessAverage();
@@ -30,6 +29,7 @@ private:
      */
     void _generateInitGene() override;
     void _fitnessCal() override;
+    double_t _singleFitnessCal(uint32_t* pGene);
     void _cross(uint32_t parentA, uint32_t parentB, uint32_t &childA, uint32_t &childB) override;
     uint32_t _mutation(uint32_t child) override;
     void _selectParents(uint32_t* parentsNo, uint32_t num);
