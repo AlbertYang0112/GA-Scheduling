@@ -486,6 +486,30 @@ double_t SchGA::fitnessVar() {
     return sqrt(fitnessVarSum / cnt);
 }
 
+uint32_t SchGA::_distance(uint32_t* pGeneA, uint32_t* pGeneB) {
+    uint32_t tempGene[_geneLength];
+    std::copy(pGeneA, pGeneA + _geneLength, tempGene);
+
+    uint32_t dist = 0;
+    pGeneA = tempGene;
+    uint32_t pairPos;
+    for(uint32_t startPos = 0; startPos < _geneLength - 1; startPos++) {
+        if(*pGeneA != *pGeneB) {
+            DEBUG_BRIEF("Found dismatch\n");
+            pairPos = static_cast<uint32_t>(std::find(pGeneA, tempGene + _geneLength, *pGeneB) - tempGene);
+            if(pairPos == _geneLength) {
+                DEBUG("Distant calculation error\n");
+                continue;
+            }
+            dist++;
+            std::swap(*pGeneA, tempGene[pairPos]);
+        }
+        pGeneA++;
+        pGeneB++;
+    }
+    return dist;
+}
+
 SchGA::~SchGA() {
     delete [] _fitness;
     delete [] _gene;

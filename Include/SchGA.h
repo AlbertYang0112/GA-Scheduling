@@ -37,6 +37,7 @@ private:
     uint32_t _mutation(uint32_t child) override;
     void _selectParents(uint32_t* parentsNo, uint32_t num);
     double_t _timeCompute(double_t* timeStamp, uint32_t* filghtNo);
+    uint32_t _distance(uint32_t* pGeneA, uint32_t* pGeneB);
 
     TASK *_taskTable;
     TASK_PARAMETER *_taskParamTable;
