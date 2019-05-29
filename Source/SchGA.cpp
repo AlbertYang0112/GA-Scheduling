@@ -327,11 +327,22 @@ void SchGA::evaluate(
         if(_feasibleGeneCnt != 0) {
             // If we found a feasible solution
 
-            _searchEngines[0].search(10);
-            searchUpdated = _searchEngines[0].isBetter();
+            bool tempUpdated;
+            uint32_t tempUpdateCnt = 0;
+            searchUpdated = false;
+            do {
+                _searchEngines[0].search(10);
+                tempUpdateCnt += 10;
+                tempUpdated = _searchEngines[0].isBetter();
+                if(tempUpdated) searchUpdated = true;
+                if(tempUpdateCnt % 50 == 0) {
+                    DEBUG_BRIEF("Searching... %d Iterations\n", tempUpdateCnt);
+                }
+            } while(tempUpdated);
+            //searchUpdated = _searchEngines[0].isBetter();
             searchBestFitness = _searchEngines[0].bestFitness();
             if(searchUpdated) {
-                DEBUG_BRIEF("Found a better gene by search: %f -> %f\n", (double)_bestFitness, (double)searchBestFitness);
+                DEBUG_BRIEF("Found a better gene by search for %d Iterations: %f -> %f\n", tempUpdateCnt, (double)_bestFitness, (double)searchBestFitness);
             }
             if(_bestFitnessUpdated) {
                 DEBUG_BRIEF("Found a better gene by GA: %f -> %f\n", (double)searchBestFitness, (double)_bestFitness);
