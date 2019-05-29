@@ -3,13 +3,16 @@
 
 #include "GA.h"
 #include <random>
+#include <vector>
 #include "Descriptor.h"
+#include "SearchEngine.h"
 extern "C" {
 #include "dubins.h"
 };
 
 class SchGA: public GA {
 public:
+    friend class SearchEngine;
     void evaluate(uint32_t iterations,
                   uint32_t &bestGene, double_t &bestFitness) override;
     SchGA(uint32_t population, FLIGHT_STATE* flights, TASK* taskTable, double_t rho, double_t crossRate, double_t mutationRate);
@@ -54,10 +57,14 @@ private:
     double_t *_fitness;
     double_t _rho;
     std::mt19937 _rng;
+    static const uint32_t SEARCH_ENGINE_NUM = 2;
+    static const uint32_t TABOO_LIST_LEN = 5;
+    std::vector<SearchEngine> _searchEngines;
 
     DubinsPath* _path;
     uint32_t _numPath;
 };
+
 
 inline TASK_PARAMETER* SchGA::_visitTask(uint32_t task) {
     if(task > _taskTable->totalNum) {

@@ -74,6 +74,17 @@ SchGA::SchGA(
     std::random_device rd;
     _rng.seed(rd());
 
+    // Initialize the search engine array
+    _searchEngines.insert(
+        _searchEngines.begin(), 
+        SEARCH_ENGINE_NUM, 
+        SearchEngine(
+            _geneLength, 
+            static_cast<uint32_t>(0.5*_geneLength), 
+            TABOO_LIST_LEN, 
+            this)
+        );
+
     // Scale the cross rate and the mutation rate
     assert(crossRate > 0 && crossRate < 1);
     assert(mutationRate > 0 && mutationRate < 1);
