@@ -2,6 +2,7 @@
 #define GAHW_GA_H
 
 #include <cstdint>
+#include <cmath>
 #include <algorithm>
 
 class GA {
@@ -39,7 +40,7 @@ public:
      *              bestFitness <- the fitness of the best gene
      */
     virtual void evaluate(uint32_t iterations,
-            uint32_t &bestGene, double &bestFitness) = 0;
+            uint32_t &bestGene, double_t &bestFitness) = 0;
 };
 
 

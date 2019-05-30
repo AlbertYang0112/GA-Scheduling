@@ -1,18 +1,24 @@
-#include "NaiveGA.h"
+#include "../Include/NaiveGA.h"
+#include <random>
+#include <cstdint>
+#include <cmath>
 
 void NaiveGA::_generateInitGene() {
     uint32_t* pGene = _gene;
     for(uint32_t i = 0; i < _num; i++) {
-        *pGene++ = static_cast<uint32_t >(random()) % 100;
+        *pGene++ = static_cast<uint32_t >(_rng()) % 100;
     }
 }
 
 void NaiveGA::_fitnessCal() {
     uint32_t* pGene = _gene;
-    double_t* pFitness = _fitness;
-    double_t* pCFitness = _cumulateFitness;
+    uint32_t* pFitness = _fitness;
+    uint32_t* pCFitness = _cumulateFitness;
     for(uint32_t i = 0; i < _num; i++) {
-        *pFitness = 1 / ((*pGene) * (*pGene) + 0.001);
+        *pFitness = 1000 - (*pGene);
+        if(*pFitness > 1000) {
+            *pFitness = 0;
+        }
 
         if(*pFitness > _maxFitness) {
             _maxFitness = *pFitness;
@@ -31,7 +37,7 @@ void NaiveGA::_fitnessCal() {
 }
 
 void NaiveGA::_cross(uint32_t parentA, uint32_t parentB, uint32_t &childA, uint32_t &childB) {
-    uint32_t crossPos = static_cast<uint32_t >(random()) % 31 + 1;  // cross in range [1, 31]
+    uint32_t crossPos = static_cast<uint32_t >(_rng()) % 31 + 1;  // cross in range [1, 31]
     uint32_t crossMask = (1U << crossPos) - 1U;
     childA = (parentA & crossMask) | (parentB & (~crossMask));
     childB = (parentB & crossMask) | (parentA & (~crossMask));
@@ -44,25 +50,26 @@ void NaiveGA::evaluate(uint32_t iterations, uint32_t &bestGene, double_t &bestFi
         _fitnessCal();
         bestGene = _bestGene;
         bestFitness = _maxFitness;
+#pragma omp parallel for num_threads(4)
         for (uint32_t child = 0; child < _num; child += 2) {
-            double_t rand1 = drand48() * _cumulateFitness[_num - 1];
-            double_t rand2 = drand48() * _cumulateFitness[_num - 1];
+            uint32_t rand1 = _rng() % _cumulateFitness[_num - 1];
+            uint32_t rand2 = _rng() % _cumulateFitness[_num - 1];
             uint32_t parent1 = _gene[
                     std::lower_bound(_cumulateFitness, _cumulateFitness + _num, rand1) - _cumulateFitness
             ];
             uint32_t parent2 = _gene[
                     std::lower_bound(_cumulateFitness, _cumulateFitness + _num, rand2) - _cumulateFitness
             ];
-            if(random() < _crossRate) {
+            if (_rng() < _crossRate) {
                 _cross(parent1, parent2, childA, childB);
             } else {
                 childA = parent1;
                 childB = parent2;
             }
-            if(random() < _mutationRate) {
+            if (_rng() < _mutationRate) {
                 childA = _mutation(childA);
             }
-            if(random() < _mutationRate) {
+            if (_rng() < _mutationRate) {
                 childB = _mutation(childB);
             }
             children[child] = childA;
@@ -73,6 +80,6 @@ void NaiveGA::evaluate(uint32_t iterations, uint32_t &bestGene, double_t &bestFi
 }
 
 uint32_t NaiveGA::_mutation(uint32_t child) {
-    uint32_t bitSel = static_cast<uint32_t >(random()) % 32;
+    uint32_t bitSel = static_cast<uint32_t >(_rng()) % 32;
     return child ^ (1U << bitSel);
 }
