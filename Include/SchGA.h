@@ -21,6 +21,7 @@ public:
     uint32_t getGeneLength();
     double_t fitnessAverage();
     double_t fitnessVar();
+    uint32_t distantToBestAverage();
 
 private:
     TASK_PARAMETER* _visitTask(uint32_t task);
@@ -36,8 +37,17 @@ private:
     void _cross(uint32_t parentA, uint32_t parentB, uint32_t &childA, uint32_t &childB) override;
     uint32_t _mutation(uint32_t child) override;
     void _selectParents(uint32_t* parentsNo, uint32_t num);
-    double_t _timeCompute(double_t* timeStamp, uint32_t* filghtNo);
+
+    /*
+     * Resolve the sequence conflict
+     * Param:
+     *  timeStamp: the task execution time, len = task->totalNum；
+     *  flightNo: the flight number which executed the according task;
+     * Return: The task time, if the conflict is unresolvable, return DBL_MAX
+     */
+    double_t _timeCompute(double_t* timeStamp, uint32_t* flightNo);
     uint32_t _distance(uint32_t* pGeneA, uint32_t* pGeneB);
+    uint32_t _selectByDistant(uint32_t** geneList, uint32_t minDist, uint32_t num);
 
     TASK *_taskTable;
     TASK_PARAMETER *_taskParamTable;
@@ -55,7 +65,8 @@ private:
     double_t *_fitness;
     double_t _rho;
     std::mt19937 _rng;
-    static const uint32_t SEARCH_ENGINE_NUM = 1;
+    static const uint32_t PRESERVED_SLOT = 6;
+    static const uint32_t SEARCH_ENGINE_NUM = 5;
     static const uint32_t TABOO_LIST_LEN = 5;
     std::vector<SearchEngine> _searchEngines;
 

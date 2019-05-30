@@ -309,6 +309,46 @@ void SchGA::_selectParents(uint32_t* parentsNo, uint32_t num) {
     }
 }
 
+uint32_t SchGA::_selectByDistant(uint32_t** geneList, uint32_t minDist, uint32_t num) {
+    uint32_t selGene[num];
+    std::fill(selGene, selGene + num, UINT32_MAX);
+
+    double_t minFit;
+
+    uint32_t* pGene;
+    uint32_t genNum;
+    for(genNum = 0; genNum < num; genNum++) {
+        bool avail;
+        minFit = DBL_MAX;
+        pGene = _gene;
+        for(uint32_t i = 0; i < _population; i++) {
+            // Make sure the available gene is not visited.
+            avail = std::find(selGene, selGene + num, i) == selGene + num;
+
+            // Make sure the gene is outside of keepout region of previously selected gene.
+            for(uint32_t j = 0; j < genNum && avail; j++) {
+                avail = _distance(geneList[j], pGene) > minDist;
+            }
+
+            if(avail) {
+                // Select the best available gene
+                //DEBUG("GET ONE for %d result", genNum);
+                if(minFit >= _fitness[i]) {
+                    minFit = _fitness[i];
+                    geneList[genNum] = pGene;
+                    selGene[genNum] = i;
+                }
+            }
+            pGene += _geneLength;
+        }
+        if(selGene[genNum] == DBL_MAX) {
+            // No available gene in this iteration.
+            break;
+        }
+    }
+    return genNum;
+}
+
 void SchGA::evaluate(
         uint32_t iterations,
         uint32_t &bestGene,
@@ -321,57 +361,105 @@ void SchGA::evaluate(
     uint32_t parentsNo[2];
     for(uint32_t iter_cnt = 0; iter_cnt < iterations; iter_cnt++) {
         _fitnessCal();
+
         if(iter_cnt == 0) {
             _searchEngines[0].update(_bestGene, _bestFitness);
         }
         if(_feasibleGeneCnt != 0) {
             // If we found a feasible solution
 
-            bool tempUpdated;
-            uint32_t tempUpdateCnt = 0;
-            searchUpdated = false;
-            do {
-                _searchEngines[0].search(10);
-                tempUpdateCnt += 10;
-                tempUpdated = _searchEngines[0].isBetter();
-                if(tempUpdated) searchUpdated = true;
-                if(tempUpdateCnt % 50 == 0) {
-                    DEBUG_BRIEF("Searching... %d Iterations\n", tempUpdateCnt);
+            if(iter_cnt % 50 == 0) {
+                DEBUG_BRIEF("Update the Boost Genes\n");
+                // Update the preserved genes
+                uint32_t* distGene[6];
+                uint32_t distSelNum;
+                distSelNum = _selectByDistant(distGene, 2, 6);
+                uint32_t copyI;
+                for(copyI = 0; copyI < distSelNum; copyI++) {
+                    std::copy(distGene[copyI], distGene[copyI] + _geneLength, _gene + (2 + copyI) * _geneLength);
                 }
-            } while(tempUpdated);
-            //searchUpdated = _searchEngines[0].isBetter();
-            searchBestFitness = _searchEngines[0].bestFitness();
+                for(; copyI < PRESERVED_SLOT - 2; copyI++) {
+                    std::copy(_bestGene, _bestGene + _geneLength, _gene + (2 + copyI) * _geneLength);
+                }
+                for(copyI = 1; copyI < SEARCH_ENGINE_NUM; copyI++) {
+                    _searchEngines[copyI].update(_gene + (copyI + 2) * _geneLength);
+                }
+                DEBUG_BRIEF("Distant Sel Found %d Available Genes\n", distSelNum);
+                for(uint32_t distA = 0; distA < distSelNum; distA++) {
+                    DEBUG_BRIEF("From %d: ", distA);
+                    for(uint32_t distB = 1; distB < distSelNum; distB++) {
+                        DEBUG_BRIEF("%d ", _distance(distGene[distA], distGene[distB]));
+                    }
+                    DEBUG_BRIEF("\n");
+                }
+            }
+
+            // Activate the Search Engine
+            searchUpdated = false;
+            uint32_t bestEngineNo = 0;
+            searchBestFitness = DBL_MAX;
+
+            DEBUG_BRIEF("Iteration %d, Engine Searched ", iter_cnt);
+            for(uint32_t engineNo = 0; engineNo < SEARCH_ENGINE_NUM; engineNo++) {
+                bool updated;
+                uint32_t engineSearchIter = 0;
+                do {
+                    _searchEngines[engineNo].search(10);
+                    engineSearchIter += 10;
+                    updated = _searchEngines[engineNo].isBetter();
+                    if(updated) searchUpdated = true;
+                } while(updated);
+                if(_searchEngines[engineNo].bestFitness() < searchBestFitness) {
+                    searchBestFitness = _searchEngines[engineNo].bestFitness();
+                    bestEngineNo = engineNo;
+                }
+                DEBUG_BRIEF("%d ", engineSearchIter);
+            }
+            DEBUG_BRIEF("Iterations\n");
+            for(uint32_t engineNo = 1; engineNo < SEARCH_ENGINE_NUM; engineNo++) {
+                if(_searchEngines[engineNo].isBetter())
+                    _searchEngines[engineNo].copyTheBestTo(_gene + (engineNo + 1) * _geneLength);
+            }
+
             if(searchUpdated) {
-                DEBUG_BRIEF("Found a better gene by search for %d Iterations: %f -> %f\n", tempUpdateCnt, (double)_bestFitness, (double)searchBestFitness);
+                DEBUG_BRIEF("Engine %d Found a better gene: %f -> %f\n", bestEngineNo, (double)_bestFitness, (double)searchBestFitness);
             }
             if(_bestFitnessUpdated) {
-                DEBUG_BRIEF("Found a better gene by GA: %f -> %f\n", (double)searchBestFitness, (double)_bestFitness);
+                DEBUG_BRIEF("GA Found a better gene: %f -> %f\n", (double)searchBestFitness, (double)_bestFitness);
             }
+
+            // Gene preserved slot: | Best Gene | 2nd Best Gene | Distant Search Slot 1-6 |
             if(_bestFitnessUpdated && searchUpdated) {
                 // Put the gene with better fitness to the first place
                 // Put the other gene to the secondary place
                 if(_bestFitness < searchBestFitness) {
                     std::copy(_bestGene, _bestGene + _geneLength, _nextGene);
-                    _searchEngines[0].copyTheBestTo(_nextGene + _geneLength);
+                    _searchEngines[bestEngineNo].copyTheBestTo(_nextGene + _geneLength);
                     _fitness[0] = _bestFitness;
                     _fitness[1] = searchBestFitness;
                     // Update the search engine
                     _searchEngines[0].update(_bestGene, _bestFitness);
                 } else {
-                    _searchEngines[0].copyTheBestTo(_nextGene);
                     std::copy(_bestGene, _bestGene + _geneLength, _nextGene + _geneLength);
+                    _searchEngines[bestEngineNo].copyTheBestTo(_nextGene);
                     _fitness[0] = searchBestFitness;
                     _fitness[1] = _bestFitness;
                     _bestFitness = searchBestFitness;
                     _bestGene = _nextGene;
+                    if(bestEngineNo != 0) {
+                        _searchEngines[0].update(_bestGene, _bestFitness);
+                    }
                 }
             } else if(searchUpdated) {
-                _searchEngines[0].copyTheBestTo(_nextGene);
                 std::copy(_bestGene, _bestGene + _geneLength, _nextGene + _geneLength);
+                _searchEngines[bestEngineNo].copyTheBestTo(_nextGene);
                 _fitness[0] = searchBestFitness;
                 _fitness[1] = _bestFitness;
                 _bestFitness = searchBestFitness;
                 _bestGene = _nextGene;
+                if(bestEngineNo != 0) {
+                    _searchEngines[0].update(_bestGene, _bestFitness);
+                }
             } else {
                 if(_bestFitnessUpdated) {
                     _searchEngines[0].update(_bestGene, _bestFitness);
@@ -437,6 +525,7 @@ void SchGA::evaluate(
                 DEBUG_BRIEF("Fitness Average: %f\n", static_cast<double>(avg));
                 DEBUG_BRIEF("Fitness Variance: %E\n", static_cast<double>(var));
             }
+            DEBUG_BRIEF("Average Distance to the Best Gene: %d\n", distantToBestAverage());
             if(_feasibleGeneCnt != 0) {
                 DEBUG_BRIEF("Best Fitness %f\n", static_cast<double>(_bestFitness));
                 //for(uint32_t i = 0; i < _geneLength; i++) {
@@ -495,7 +584,6 @@ uint32_t SchGA::_distance(uint32_t* pGeneA, uint32_t* pGeneB) {
     uint32_t pairPos;
     for(uint32_t startPos = 0; startPos < _geneLength - 1; startPos++) {
         if(*pGeneA != *pGeneB) {
-            DEBUG_BRIEF("Found dismatch\n");
             pairPos = static_cast<uint32_t>(std::find(pGeneA, tempGene + _geneLength, *pGeneB) - tempGene);
             if(pairPos == _geneLength) {
                 DEBUG("Distant calculation error\n");
@@ -508,6 +596,19 @@ uint32_t SchGA::_distance(uint32_t* pGeneA, uint32_t* pGeneB) {
         pGeneB++;
     }
     return dist;
+}
+
+uint32_t SchGA::distantToBestAverage() {
+    uint32_t distSum = 0;
+    for(uint32_t i = 0; i < _population; i++) {
+        if(_fitness[i] != DBL_MAX) {
+            distSum += _distance(_bestGene, _gene + i * _geneLength);
+        }
+    }
+
+    distSum /= _feasibleGeneCnt;
+
+    return distSum;
 }
 
 SchGA::~SchGA() {
