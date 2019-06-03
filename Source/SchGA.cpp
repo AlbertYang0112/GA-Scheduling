@@ -87,6 +87,12 @@ SchGA::SchGA(
     assert(mutationRate > 0 && mutationRate < 1);
     _crossRate = crossRate * _rng.max();
     _mutationRate = mutationRate * _rng.max();
+
+    // Open the recorder file
+    _recorder.open("SchGARecord.csv");
+    _recorder << "Iter," << "FeasibleCnt," << "BestFitness," 
+        << "FitnessAvg," << "FitnessVar," << "DistantAvg," 
+       << "DistantVar" << std::endl;
 }
 
 void SchGA::_generateInitGene() {
@@ -373,7 +379,7 @@ void SchGA::evaluate(
                 // Update the preserved genes
                 uint32_t* distGene[6];
                 uint32_t distSelNum;
-                distSelNum = _selectByDistant(distGene, 2, 6);
+                distSelNum = _selectByDistant(distGene, 2, PRESERVED_SLOT - 2);
                 uint32_t copyI;
                 for(copyI = 0; copyI < distSelNum; copyI++) {
                     std::copy(distGene[copyI], distGene[copyI] + _geneLength, _gene + (2 + copyI) * _geneLength);
@@ -404,7 +410,7 @@ void SchGA::evaluate(
                 bool updated;
                 uint32_t engineSearchIter = 0;
                 do {
-                    _searchEngines[engineNo].search(10);
+                    //_searchEngines[engineNo].search(10);
                     engineSearchIter += 10;
                     updated = _searchEngines[engineNo].isBetter();
                     if(updated) searchUpdated = true;
@@ -519,6 +525,8 @@ void SchGA::evaluate(
         if(iter_cnt % 10 == 0) {
             double_t avg = fitnessAverage();
             double_t var = fitnessVar();
+            uint32_t distAvg = distantToBestAverage();
+            double_t distVar = distantToBestVar();
             DEBUG_BRIEF("Iteration: %d\n", iter_cnt);
             DEBUG_BRIEF("Feasible Gene: %d\n", _feasibleGeneCnt);
             if(avg != DBL_MAX) {
@@ -537,6 +545,8 @@ void SchGA::evaluate(
                 //}
                 //DEBUG_BRIEF("S\n");
             }
+            _recorder << iter_cnt << ',' << _feasibleGeneCnt << ',' << _bestFitness
+                << ',' << avg << ',' << var << ',' << distAvg << ',' << distVar << std::endl;
         }
         std::swap(_gene, _nextGene);
     }
@@ -611,7 +621,23 @@ uint32_t SchGA::distantToBestAverage() {
     return distSum;
 }
 
+double_t SchGA::distantToBestVar() {
+    uint32_t distAvg = distantToBestAverage();
+    double_t var = 0;
+    int32_t prod;
+    for(uint32_t i = 0; i < _population; i++) {
+        if(_fitness[i] != DBL_MAX) {
+            prod = static_cast<int32_t>(
+                _distance(_bestGene, _gene + i * _geneLength)
+                ) - distAvg;
+            var += prod * prod;
+        }
+    }
+    return var;
+}
+
 SchGA::~SchGA() {
+    _recorder.close();
     delete [] _fitness;
     delete [] _gene;
     delete [] _nextGene;

@@ -4,6 +4,7 @@
 #include "GA.h"
 #include <random>
 #include <vector>
+#include <fstream>
 #include "Descriptor.h"
 #include "SearchEngine.h"
 extern "C" {
@@ -22,6 +23,7 @@ public:
     double_t fitnessAverage();
     double_t fitnessVar();
     uint32_t distantToBestAverage();
+    double_t distantToBestVar();
 
 private:
     TASK_PARAMETER* _visitTask(uint32_t task);
@@ -65,10 +67,11 @@ private:
     double_t *_fitness;
     double_t _rho;
     std::mt19937 _rng;
-    static const uint32_t PRESERVED_SLOT = 6;
-    static const uint32_t SEARCH_ENGINE_NUM = 5;
+    static const uint32_t PRESERVED_SLOT = 2;
+    static const uint32_t SEARCH_ENGINE_NUM = 1;
     static const uint32_t TABOO_LIST_LEN = 5;
     std::vector<SearchEngine> _searchEngines;
+    std::ofstream _recorder;
 
     DubinsPath* _path;
     uint32_t _numPath;
@@ -79,12 +82,6 @@ inline TASK_PARAMETER* SchGA::_visitTask(uint32_t task) {
     if(task > _taskTable->totalNum) {
         return nullptr;
     }
-    //TASK_QUEUE *pQueue = _taskTable->taskQueue;
-    //while(task >= pQueue->num) {
-    //    task -= pQueue->num;
-    //    pQueue++;
-    //}
-    //return (pQueue->tasks + task);
     return _taskParamTable + task;
 }
 
