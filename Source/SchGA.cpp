@@ -72,6 +72,7 @@ SchGA::SchGA(
     std::random_device rd;
     _rng.seed(rd());
 
+#ifdef ADVANCED_FEATURE
     // Initialize the search engine array
     _searchEngines.insert(
         _searchEngines.begin(), 
@@ -82,6 +83,7 @@ SchGA::SchGA(
             TABOO_LIST_LEN, 
             this)
         );
+#endif
 
     // Scale the cross rate and the mutation rate
     assert(crossRate > 0 && crossRate < 1);
@@ -184,11 +186,14 @@ double_t SchGA::_singleFitnessCal(uint32_t* pGene) {
         for(uint32_t task = 0; task < pTaskQueue->num; task++) {
             if(totalTaskTime > *pTaskTime) {
                 // Constrain Violation Occurs
+#ifdef ADVANCED_FEATURE
                 // Soft-margin
                 tempMaxTime = _timeCompute(taskTime, taskFlight);
                 isFeasibleSolution = tempMaxTime != DBL_MAX;
                 if(isFeasibleSolution) _saveCnt++;
-                //isFeasibleSolution = false;
+#else
+                isFeasibleSolution = false;
+#endif
                 break;
                 // Todo: Add the soft-margin method
             }
@@ -304,6 +309,7 @@ void SchGA::_selectParents(uint32_t* parentsNo, uint32_t num) {
     for(uint32_t i = 0; i < num; i++) {
         selA = _rng() % _population;
         selB = _rng() % _population;
+#ifdef ADVANCED_FEATURE
         if(_rng() < _rng.max() * 0.85) {
             if (_fitness[selA] >= _fitness[selB]) {
                 parentsNo[i] = selB;
@@ -317,6 +323,13 @@ void SchGA::_selectParents(uint32_t* parentsNo, uint32_t num) {
                 parentsNo[i] = selB;
             }
         }
+#else
+        if (_fitness[selA] >= _fitness[selB]) {
+            parentsNo[i] = selB;
+        } else {
+            parentsNo[i] = selA;
+        }
+#endif
     }
 }
 
@@ -373,12 +386,15 @@ void SchGA::evaluate(
     for(uint32_t iter_cnt = 0; iter_cnt < iterations; iter_cnt++) {
         _fitnessCal();
 
+#ifdef ADVANCED_FEATURE
         if(iter_cnt == 0) {
             _searchEngines[0].update(_bestGene, _bestFitness);
         }
+#endif
         if(_feasibleGeneCnt != 0) {
             // If we found a feasible solution
 
+#ifdef ADVANCED_FEATURE
             if(iter_cnt % 50 == 0) {
                 DEBUG_BRIEF("Update the Boost Genes\n");
                 // Update the preserved genes
@@ -434,9 +450,11 @@ void SchGA::evaluate(
             if(searchUpdated) {
                 DEBUG_BRIEF("Engine %d Found a better gene: %f\n", bestEngineNo, (double)searchBestFitness);
             }
+
             if(_bestFitnessUpdated) {
                 DEBUG_BRIEF("GA Found a better gene: %f\n", (double)_bestFitness);
             }
+
 
             // Gene preserved slot: | Best Gene | 2nd Best Gene | Distant Search Slot 1-6 |
             if(_bestFitnessUpdated && searchUpdated) {
@@ -480,13 +498,19 @@ void SchGA::evaluate(
                 _fitness[0] = _bestFitness;
                 _fitness[1] = _bestFitness;
             }
+#else
+            std::copy(_bestGene, _bestGene + _geneLength, _nextGene);
+            std::copy(_bestGene, _bestGene + _geneLength, _nextGene + _geneLength);
+            _fitness[0] = _bestFitness;
+            _fitness[1] = _bestFitness;
             if (_rng() < _mutationRate) {
                 _mutation(1);
             }
+#endif
         }
         _bestFitnessUpdated = false;
 
-        for(uint32_t cross_cnt = (_feasibleGeneCnt == 0 ? 0 : 2); cross_cnt < _population; cross_cnt += 2) {
+        for(uint32_t cross_cnt = PRESERVED_SLOT; cross_cnt < _population; cross_cnt += 2) {
             _selectParents(parentsNo, 2);
             uint32_t cross_tmp = cross_cnt + 1;
             if(_fitness[parentsNo[0]] == DBL_MAX || _fitness[parentsNo[1]] == DBL_MAX) {
@@ -496,6 +520,7 @@ void SchGA::evaluate(
                 std::copy(_gene + parentsNo[1] * _geneLength,
                           _gene + parentsNo[1] * _geneLength + _geneLength,
                           _nextGene + cross_cnt * _geneLength + _geneLength);
+#ifdef ADVANCED_FEATURE
                 if(_fitness[parentsNo[0]] == DBL_MAX || parentsNo[0] < 2) {
                     _mutation(cross_cnt);
                     _mutation(cross_cnt);
@@ -506,6 +531,7 @@ void SchGA::evaluate(
                     _mutation(cross_tmp);
                     _mutation(cross_tmp);
                 }
+#endif
             } else {
                 if (_rng() < _crossRate) {
                     _cross(parentsNo[0], parentsNo[1], cross_cnt, cross_tmp);

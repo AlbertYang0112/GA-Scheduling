@@ -11,6 +11,9 @@ extern "C" {
 #include "dubins.h"
 };
 
+//#define __DEBUG__
+#define ADVANCED_FEATURE
+
 class SchGA: public GA {
 public:
     friend class SearchEngine;
@@ -71,10 +74,14 @@ private:
     double_t *_fitness;
     double_t _rho;
     std::mt19937 _rng;
+#ifdef ADVANCED_FEATURE
     static const uint32_t PRESERVED_SLOT = 6;
     static const uint32_t SEARCH_ENGINE_NUM = 5;
     static const uint32_t TABOO_LIST_LEN = 5;
     std::vector<SearchEngine> _searchEngines;
+#else
+    static const uint32_t PRESERVED_SLOT = 6;
+#endif
     std::ofstream _recorder;
 
     DubinsPath* _path;

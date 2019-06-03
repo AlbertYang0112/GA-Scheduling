@@ -209,6 +209,7 @@ void SchGADemoRandom(const char* recorderName) {
 int main() {
     std::cout << "Start" << std::endl;
     char fileName[] = "00.csv";
+#pragma omp parallel for num_threads(8)
     for(uint32_t iter = 0; iter < 4; iter++) {
         fileName[0] = '0' + iter / 10;
         fileName[1] = '0' + iter % 10;
