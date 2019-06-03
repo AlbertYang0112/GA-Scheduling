@@ -11,7 +11,7 @@ extern "C" {
 #include "dubins.h"
 };
 
-//#define __DEBUG__
+#define __DEBUG__
 #define ADVANCED_FEATURE
 
 class SchGA: public GA {

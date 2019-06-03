@@ -510,7 +510,7 @@ void SchGA::evaluate(
         }
         _bestFitnessUpdated = false;
 
-        for(uint32_t cross_cnt = PRESERVED_SLOT; cross_cnt < _population; cross_cnt += 2) {
+        for(uint32_t cross_cnt = 2; cross_cnt < _population; cross_cnt += 2) {
             _selectParents(parentsNo, 2);
             uint32_t cross_tmp = cross_cnt + 1;
             if(_fitness[parentsNo[0]] == DBL_MAX || _fitness[parentsNo[1]] == DBL_MAX) {

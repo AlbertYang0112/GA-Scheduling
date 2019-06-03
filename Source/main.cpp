@@ -206,15 +206,13 @@ void SchGADemoRandom(const char* recorderName) {
     destructFlight(&flightState);
 }
 
-int main() {
+int main(int argc, char* argv[]) {
     std::cout << "Start" << std::endl;
-    char fileName[] = "00.csv";
-#pragma omp parallel for num_threads(8)
-    for(uint32_t iter = 0; iter < 4; iter++) {
-        fileName[0] = '0' + iter / 10;
-        fileName[1] = '0' + iter % 10;
-        SchGADemoRandom(fileName);
+    if(argc != 2) {
+        std::cout << "Usage: " << argv[0] << " Log File Name" << std::endl;
+        return -1;
     }
+    SchGADemoRandom(argv[1]);
     //SchGADemoStatic();
     std::cout << "Done" << std::endl;
 
