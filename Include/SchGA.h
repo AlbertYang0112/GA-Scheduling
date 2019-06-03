@@ -47,7 +47,7 @@ private:
      *  flightNo: the flight number which executed the according task;
      * Return: The task time, if the conflict is unresolvable, return DBL_MAX
      */
-    double_t _timeCompute(double_t* timeStamp, uint32_t* flightNo);
+    double_t _timeCompute(double_t* timeStamp, uint32_t* flightNo, uint32_t max_step=100, bool log=false);
     uint32_t _distance(uint32_t* pGeneA, uint32_t* pGeneB);
     uint32_t _selectByDistant(uint32_t** geneList, uint32_t minDist, uint32_t num);
 
