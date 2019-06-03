@@ -16,13 +16,16 @@ public:
     friend class SearchEngine;
     void evaluate(uint32_t iterations,
                   uint32_t &bestGene, double_t &bestFitness) override;
-    SchGA(uint32_t population, FLIGHT_STATE* flights, TASK* taskTable, double_t rho, double_t crossRate, double_t mutationRate);
+    SchGA(uint32_t population, FLIGHT_STATE* flights, TASK* taskTable, 
+        double_t rho, double_t crossRate, double_t mutationRate, 
+        const char* recorderName
+        );
     ~SchGA();
     const uint32_t *getBestGene();
     uint32_t getGeneLength();
     double_t fitnessAverage();
     double_t fitnessVar();
-    uint32_t distantToBestAverage();
+    double_t distantToBestAverage();
     double_t distantToBestVar();
 
 private:
@@ -64,11 +67,12 @@ private:
     uint32_t _feasibleGeneCnt;
     uint32_t _crossRate;
     uint32_t _mutationRate;
+    uint32_t _saveCnt;
     double_t *_fitness;
     double_t _rho;
     std::mt19937 _rng;
-    static const uint32_t PRESERVED_SLOT = 2;
-    static const uint32_t SEARCH_ENGINE_NUM = 1;
+    static const uint32_t PRESERVED_SLOT = 6;
+    static const uint32_t SEARCH_ENGINE_NUM = 5;
     static const uint32_t TABOO_LIST_LEN = 5;
     std::vector<SearchEngine> _searchEngines;
     std::ofstream _recorder;

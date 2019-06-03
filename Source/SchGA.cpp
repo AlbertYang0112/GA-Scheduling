@@ -11,7 +11,8 @@ SchGA::SchGA(
         TASK *taskTable,
         double_t rho,
         double_t crossRate,
-        double_t mutationRate
+        double_t mutationRate,
+        const char* recorderName
         ):_rho(rho), _population(population) {
     assert(flights != nullptr);
     assert(taskTable != nullptr);
@@ -89,10 +90,10 @@ SchGA::SchGA(
     _mutationRate = mutationRate * _rng.max();
 
     // Open the recorder file
-    _recorder.open("SchGARecord.csv");
+    _recorder.open(recorderName);
     _recorder << "Iter," << "FeasibleCnt," << "BestFitness," 
         << "FitnessAvg," << "FitnessVar," << "DistantAvg," 
-       << "DistantVar" << std::endl;
+       << "DistantVar," << "Saved" << std::endl;
 }
 
 void SchGA::_generateInitGene() {
@@ -123,11 +124,7 @@ void SchGA::_generateInitGene() {
         if(queueNo < _initialFlightState->num - 1)
             *pGene++ = _taskTable->totalNum + queueNo;
     }
-    DEBUG_BRIEF("%d\n", _geneLength);
-    for(uint32_t i = 0; i < _geneLength; i++) {
-        DEBUG_BRIEF("%d ", _gene[i]);
-    }
-    DEBUG_BRIEF("\n");
+    DEBUG_BRIEF("Gene Length: %d\n", _geneLength);
 }
 
 double_t SchGA::_singleFitnessCal(uint32_t* pGene) {
@@ -138,6 +135,7 @@ double_t SchGA::_singleFitnessCal(uint32_t* pGene) {
     double endPoint[3];
 
     double_t taskTime[_taskTable->totalNum];
+    uint32_t taskFlight[_taskTable->totalNum];
     double_t totalTaskTime;
     double_t flyTime;
     double_t tempMaxTime = 0;
@@ -168,6 +166,7 @@ double_t SchGA::_singleFitnessCal(uint32_t* pGene) {
             flyTime = dubins_path_length(&path);
             totalTaskTime += flyTime;
             taskTime[*pTempGene] = totalTaskTime;
+            taskFlight[*pTempGene] = flight;
             if(totalTaskTime > tempMaxTime) {
                 tempMaxTime = totalTaskTime;
             }
@@ -185,7 +184,11 @@ double_t SchGA::_singleFitnessCal(uint32_t* pGene) {
         for(uint32_t task = 0; task < pTaskQueue->num; task++) {
             if(totalTaskTime > *pTaskTime) {
                 // Constrain Violation Occurs
-                isFeasibleSolution = false;
+                // Soft-margin
+                tempMaxTime = _timeCompute(taskTime, taskFlight);
+                isFeasibleSolution = tempMaxTime != DBL_MAX;
+                if(isFeasibleSolution) _saveCnt++;
+                //isFeasibleSolution = false;
                 break;
                 // Todo: Add the soft-margin method
             }
@@ -204,6 +207,8 @@ void SchGA::_fitnessCal() {
     double_t maxTime = 0;
     double_t prevBestFitness = _bestFitness;
     auto minTime = DBL_MAX;
+
+    _saveCnt = 0;
 
 //#pragma omp parallel for num_threads(8)
     for(uint32_t gene = 0; gene < _population; gene++) {
@@ -299,7 +304,7 @@ void SchGA::_selectParents(uint32_t* parentsNo, uint32_t num) {
     for(uint32_t i = 0; i < num; i++) {
         selA = _rng() % _population;
         selB = _rng() % _population;
-        if(_rng() < _rng.max() * 0.9) {
+        if(_rng() < _rng.max() * 0.85) {
             if (_fitness[selA] >= _fitness[selB]) {
                 parentsNo[i] = selB;
             } else {
@@ -379,7 +384,7 @@ void SchGA::evaluate(
                 // Update the preserved genes
                 uint32_t* distGene[6];
                 uint32_t distSelNum;
-                distSelNum = _selectByDistant(distGene, 2, PRESERVED_SLOT - 2);
+                distSelNum = _selectByDistant(distGene, 20, PRESERVED_SLOT - 2);
                 uint32_t copyI;
                 for(copyI = 0; copyI < distSelNum; copyI++) {
                     std::copy(distGene[copyI], distGene[copyI] + _geneLength, _gene + (2 + copyI) * _geneLength);
@@ -405,16 +410,15 @@ void SchGA::evaluate(
             uint32_t bestEngineNo = 0;
             searchBestFitness = DBL_MAX;
 
-            DEBUG_BRIEF("Iteration %d, Engine Searched ", iter_cnt);
             for(uint32_t engineNo = 0; engineNo < SEARCH_ENGINE_NUM; engineNo++) {
                 bool updated;
                 uint32_t engineSearchIter = 0;
                 do {
-                    //_searchEngines[engineNo].search(10);
+                    _searchEngines[engineNo].search(10);
                     engineSearchIter += 10;
                     updated = _searchEngines[engineNo].isBetter();
                     if(updated) searchUpdated = true;
-                } while(updated);
+                } while(updated && engineSearchIter < 100);
                 if(_searchEngines[engineNo].bestFitness() < searchBestFitness) {
                     searchBestFitness = _searchEngines[engineNo].bestFitness();
                     bestEngineNo = engineNo;
@@ -428,10 +432,10 @@ void SchGA::evaluate(
             }
 
             if(searchUpdated) {
-                DEBUG_BRIEF("Engine %d Found a better gene: %f -> %f\n", bestEngineNo, (double)_bestFitness, (double)searchBestFitness);
+                DEBUG_BRIEF("Engine %d Found a better gene: %f\n", bestEngineNo, (double)searchBestFitness);
             }
             if(_bestFitnessUpdated) {
-                DEBUG_BRIEF("GA Found a better gene: %f -> %f\n", (double)searchBestFitness, (double)_bestFitness);
+                DEBUG_BRIEF("GA Found a better gene: %f\n", (double)_bestFitness);
             }
 
             // Gene preserved slot: | Best Gene | 2nd Best Gene | Distant Search Slot 1-6 |
@@ -525,7 +529,7 @@ void SchGA::evaluate(
         if(iter_cnt % 10 == 0) {
             double_t avg = fitnessAverage();
             double_t var = fitnessVar();
-            uint32_t distAvg = distantToBestAverage();
+            double_t distAvg = distantToBestAverage();
             double_t distVar = distantToBestVar();
             DEBUG_BRIEF("Iteration: %d\n", iter_cnt);
             DEBUG_BRIEF("Feasible Gene: %d\n", _feasibleGeneCnt);
@@ -533,20 +537,14 @@ void SchGA::evaluate(
                 DEBUG_BRIEF("Fitness Average: %f\n", static_cast<double>(avg));
                 DEBUG_BRIEF("Fitness Variance: %E\n", static_cast<double>(var));
             }
-            DEBUG_BRIEF("Average Distance to the Best Gene: %d\n", distantToBestAverage());
+            DEBUG_BRIEF("Average Distance to the Best Gene: %f\n", static_cast<double>(distAvg)); 
+            DEBUG_BRIEF("Distance Variance to the Best Gene: %f\n", static_cast<double>(distVar)); 
+            DEBUG_BRIEF("Seq Saved: %d\n", _saveCnt);
             if(_feasibleGeneCnt != 0) {
                 DEBUG_BRIEF("Best Fitness %f\n", static_cast<double>(_bestFitness));
-                //for(uint32_t i = 0; i < _geneLength; i++) {
-                //    if(_bestGene[i] < _taskTable->totalNum) {
-                //        DEBUG_BRIEF("%d ", _bestGene[i]);
-                //    } else {
-                //        DEBUG_BRIEF("S ");
-                //    }
-                //}
-                //DEBUG_BRIEF("S\n");
             }
             _recorder << iter_cnt << ',' << _feasibleGeneCnt << ',' << _bestFitness
-                << ',' << avg << ',' << var << ',' << distAvg << ',' << distVar << std::endl;
+                << ',' << avg << ',' << var << ',' << distAvg << ',' << distVar << ',' << _saveCnt<< std::endl;
         }
         std::swap(_gene, _nextGene);
     }
@@ -608,15 +606,17 @@ uint32_t SchGA::_distance(uint32_t* pGeneA, uint32_t* pGeneB) {
     return dist;
 }
 
-uint32_t SchGA::distantToBestAverage() {
-    uint32_t distSum = 0;
+double_t SchGA::distantToBestAverage() {
+    double_t distSum = 0;
+    uint32_t cnt = 0;
     for(uint32_t i = 0; i < _population; i++) {
         if(_fitness[i] != DBL_MAX) {
             distSum += _distance(_bestGene, _gene + i * _geneLength);
+            cnt++;
         }
     }
 
-    distSum /= _feasibleGeneCnt;
+    distSum /= cnt;
 
     return distSum;
 }
@@ -624,6 +624,7 @@ uint32_t SchGA::distantToBestAverage() {
 double_t SchGA::distantToBestVar() {
     uint32_t distAvg = distantToBestAverage();
     double_t var = 0;
+    uint32_t cnt = 0;
     int32_t prod;
     for(uint32_t i = 0; i < _population; i++) {
         if(_fitness[i] != DBL_MAX) {
@@ -631,8 +632,10 @@ double_t SchGA::distantToBestVar() {
                 _distance(_bestGene, _gene + i * _geneLength)
                 ) - distAvg;
             var += prod * prod;
+            cnt++;
         }
     }
+    var = sqrt(var / cnt);
     return var;
 }
 
@@ -678,13 +681,13 @@ double_t SchGA::_timeCompute(double_t* timestamp, uint32_t* flightNo, uint32_t m
     uint32_t step=0;
     for(uint32_t i=0;i<num;i++){
         if(step>max_step){
-            DEBUG_BRIEF("End by max_step\n");
+            //DEBUG_BRIEF("End by max_step\n");
             return DBL_MAX;
         }
         bool t=check(stamp_seq[i], timestamp, separator, separator_num);
         if(!t){
             if(circle_detect[stamp_seq[i]]==true){
-                DEBUG_BRIEF("End by circle\n");
+                //DEBUG_BRIEF("End by circle\n");
                 return DBL_MAX;
             }
             else
@@ -698,10 +701,10 @@ double_t SchGA::_timeCompute(double_t* timestamp, uint32_t* flightNo, uint32_t m
                     timestamp[stamp_seq[j]]+=diff;
             }
             //print log
-            DEBUG_BRIEF("Change:\n");
-            for(uint32_t j=0;j<num;j++)
-                DEBUG_BRIEF("%f ", double(timestamp[j]));
-            DEBUG_BRIEF("\n");
+            //DEBUG_BRIEF("Change:\n");
+            //for(uint32_t j=0;j<num;j++)
+            //    DEBUG_BRIEF("%f ", double(timestamp[j]));
+            //DEBUG_BRIEF("\n");
             delete[] stamp_seq;
             stamp_seq= argsort(timestamp, num);
             i-=1;
@@ -709,7 +712,7 @@ double_t SchGA::_timeCompute(double_t* timestamp, uint32_t* flightNo, uint32_t m
     }
     double_t time=timestamp[stamp_seq[num-1]];
     delete[] stamp_seq;
-    DEBUG_BRIEF("End by default\n");
+    //DEBUG_BRIEF("End by default\n");
     return time;
 }
 

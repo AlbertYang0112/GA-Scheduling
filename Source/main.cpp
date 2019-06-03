@@ -71,7 +71,7 @@ void SchGADemoStatic() {
     flightState.flightState = singleFlightState;
 
     // Task scheduler
-    SchGA schGA(6000, &flightState, &task, 0.01, 0.5, 0.3);
+    SchGA schGA(6000, &flightState, &task, 0.01, 0.5, 0.3, "record.csv");
     uint32_t aaa;
     double_t bestFitness;
     schGA.evaluate(5000, aaa, bestFitness);
@@ -86,19 +86,19 @@ void SchGADemoStatic() {
     std::cout << std::endl;
 }
 
-void SchGADemoRandom() {
+void SchGADemoRandom(const char* recorderName) {
     // Configurations
     // Task and flight
     const uint32_t MAX_FLIGHT_NUM = 3;
     const uint32_t MIN_FLIGHT_NUM = 3;
-    const uint32_t MAX_TASK_QUEUE_NUM = 70;
-    const uint32_t MIN_TASK_QUEUE_NUM = 70;
+    const uint32_t MAX_TASK_QUEUE_NUM = 100;
+    const uint32_t MIN_TASK_QUEUE_NUM = 100;
     const uint32_t MAX_TASK_QUEUE_LEN = 3;
     const uint32_t MIN_TASK_QUEUE_LEN = 3;
     const double_t RHO = 5;
     // GA
     const uint32_t POPULATION = 2000;
-    const uint32_t ITERATIONS = 10000;
+    const uint32_t ITERATIONS = 200;
     const double_t MUTATION_RATE = 0.3;
     const double_t CROSS_RATE = 0.7;
     TASK task;
@@ -171,7 +171,7 @@ void SchGADemoRandom() {
     delete [] queueLen;
 
     // The Task Scheduler
-    SchGA schGA(POPULATION, &flightState, &task, RHO, CROSS_RATE, MUTATION_RATE);
+    SchGA schGA(POPULATION, &flightState, &task, RHO, CROSS_RATE, MUTATION_RATE, recorderName);
     uint32_t fillBlank;
     double_t bestFitness;
     // Run
@@ -208,7 +208,12 @@ void SchGADemoRandom() {
 
 int main() {
     std::cout << "Start" << std::endl;
-    SchGADemoRandom();
+    char fileName[] = "00.csv";
+    for(uint32_t iter = 0; iter < 4; iter++) {
+        fileName[0] = '0' + iter / 10;
+        fileName[1] = '0' + iter % 10;
+        SchGADemoRandom(fileName);
+    }
     //SchGADemoStatic();
     std::cout << "Done" << std::endl;
 
