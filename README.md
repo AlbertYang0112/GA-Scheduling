@@ -31,15 +31,46 @@
 - SchGA
 
   The solution for the project.
+  - Build the Project
+      
+        $ mkdir build 
+        $ cd build
+        $ cmake ..
+        $ make
+    - cmake configuration
+        
+      -DPRINT_INFO: Print the information to the terminal, *ON* by default.
+
+      -DADVANCED_FEATURE: Select the algorithm, *ON* -> our algorithm, *OFF* -> baseline algorithm, *ON* by default.
+  - Evaluate the Project
+  
+        ./GAHW recorder.csv
+    Program will generate a random task configuration and ask for you confirmation. 
+    
+    The statistical data will be recorded to the csv file.
+
   - Task Descriptor
+
+    To be filled.
   - Gene Coding
+
+    To be filled.
   - Fitness Function
     - Dubins Path
     - Collision Detection
     - Correction for the gene violating constrains
   - Interbred
+
+    To be filled.
   - Mutation
+
+    To be filled.
   - Selection
+
+    To be filled.
+  - Advanced Features
+
+    To be filled.
 
 ## To Do
 - bug detecting...

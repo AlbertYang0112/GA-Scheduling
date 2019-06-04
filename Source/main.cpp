@@ -89,16 +89,16 @@ void SchGADemoStatic() {
 void SchGADemoRandom(const char* recorderName) {
     // Configurations
     // Task and flight
-    const uint32_t MAX_FLIGHT_NUM = 3;
+    const uint32_t MAX_FLIGHT_NUM = 7;
     const uint32_t MIN_FLIGHT_NUM = 3;
-    const uint32_t MAX_TASK_QUEUE_NUM = 100;
-    const uint32_t MIN_TASK_QUEUE_NUM = 100;
-    const uint32_t MAX_TASK_QUEUE_LEN = 3;
-    const uint32_t MIN_TASK_QUEUE_LEN = 3;
+    const uint32_t MAX_TASK_QUEUE_NUM = 150;
+    const uint32_t MIN_TASK_QUEUE_NUM = 80;
+    const uint32_t MAX_TASK_QUEUE_LEN = 5;
+    const uint32_t MIN_TASK_QUEUE_LEN = 2;
     const double_t RHO = 5;
     // GA
     const uint32_t POPULATION = 2000;
-    const uint32_t ITERATIONS = 200;
+    const uint32_t ITERATIONS = 400;
     const double_t MUTATION_RATE = 0.3;
     const double_t CROSS_RATE = 0.7;
     TASK task;
