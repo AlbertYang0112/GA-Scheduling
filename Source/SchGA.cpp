@@ -666,24 +666,26 @@ double_t SchGA::distantToBestVar() {
 }
 
 bool check(uint32_t arg, double_t* stamp, uint32_t* division, uint32_t num){
-    for(uint32_t i=0;i<num;i++){
-        if(arg==division[i])
+    for(uint32_t i = 0; i < num; i++){
+        if(arg == division[i])
             return true;
     }
     bool t1;
-    if(arg>0){
-        t1=(stamp[arg-1]<=stamp[arg]);
+    if(arg > 0){
+        t1 = stamp[arg-1] <= stamp[arg];
     }
     else
-        t1=true;
+        t1 = true;
     return t1;
 }
 
 uint32_t* argsort(double_t* array, uint32_t size){
-    uint32_t len=size;
-    uint32_t* array_index=new uint32_t[len];
-    for(uint32_t i=0;i<len;i++)
-        array_index[i]=i;
+    uint32_t len = size;
+    uint32_t* array_index = new uint32_t[len];
+
+    for(uint32_t i = 0; i < len; i++)
+        array_index[i] = i;
+
     std::sort(array_index, array_index+len,
               [&array](uint32_t pos1, uint32_t pos2) {return (array[pos1] < array[pos2]);});
 
@@ -691,55 +693,57 @@ uint32_t* argsort(double_t* array, uint32_t size){
 }
 
 double_t SchGA::_timeCompute(double_t* timestamp, uint32_t* flightNo, uint32_t max_step){
-    uint32_t num=this->_taskTable->totalNum;
-    uint32_t separator_num=this->_taskTable->queueNum;
-    uint32_t* separator=new uint32_t[separator_num];
-    uint32_t temp=0;
-    bool* circle_detect=new bool[num];
+    uint32_t num = _taskTable->totalNum;
+    uint32_t separator_num = _taskTable->queueNum;
+    uint32_t* separator = new uint32_t[separator_num];
+    uint32_t temp = 0;
+    bool* circle_detect = new bool[num];
+    double_t ret = 0;
 
-    for(uint32_t i=0;i<num;i++)
-        circle_detect[i]=false;
-    for(uint32_t i=0;i<separator_num;i++){
-        separator[i]=temp;
-        temp+=this->_taskTable->taskQueue[i].num;
+    std::fill(circle_detect, circle_detect + num, false);
+    for(uint32_t i = 0; i < separator_num; i++){
+        separator[i] = temp;
+        temp += _taskTable->taskQueue[i].num;
     }
-    uint32_t* stamp_seq= argsort(timestamp, num);
-    uint32_t step=0;
-    for(uint32_t i=0;i<num;i++){
-        if(step>max_step){
-            //DEBUG_BRIEF("End by max_step\n");
-            return DBL_MAX;
+    uint32_t* stamp_seq = argsort(timestamp, num);
+    uint32_t step = 0;
+    for(uint32_t i = 0; i < num; i++) {
+        if(step > max_step){
+            // Unsolvable within a limited steps
+            ret = DBL_MAX;
+            break;
         }
-        bool t=check(stamp_seq[i], timestamp, separator, separator_num);
+        bool t = check(stamp_seq[i], timestamp, separator, separator_num);
         if(!t){
-            if(circle_detect[stamp_seq[i]]==true){
-                //DEBUG_BRIEF("End by circle\n");
-                return DBL_MAX;
+            if(circle_detect[stamp_seq[i]] == true){
+                // Found circular dependency
+                ret = DBL_MAX;
+                break;
             }
             else
-                circle_detect[stamp_seq[i]]=true;
+                circle_detect[stamp_seq[i]] = true;
             step++;
-            double_t diff=timestamp[stamp_seq[i]-1]-timestamp[stamp_seq[i]];
-            double_t current=timestamp[stamp_seq[i]];
-            for(uint32_t j=i;j<num;j++){
-                if((flightNo[stamp_seq[j]]==flightNo[stamp_seq[i]])&&
-                   (timestamp[stamp_seq[j]]>=current))
-                    timestamp[stamp_seq[j]]+=diff;
+            double_t diff = timestamp[stamp_seq[i]-1]-timestamp[stamp_seq[i]];
+            double_t current = timestamp[stamp_seq[i]];
+            for(uint32_t j = i; j < num; j++){
+                if((flightNo[stamp_seq[j]] == flightNo[stamp_seq[i]])&&
+                   (timestamp[stamp_seq[j]] >= current))
+                    timestamp[stamp_seq[j]] += diff;
             }
-            //print log
-            //DEBUG_BRIEF("Change:\n");
-            //for(uint32_t j=0;j<num;j++)
-            //    DEBUG_BRIEF("%f ", double(timestamp[j]));
-            //DEBUG_BRIEF("\n");
             delete[] stamp_seq;
-            stamp_seq= argsort(timestamp, num);
+            stamp_seq = argsort(timestamp, num);
             i-=1;
         }
     }
-    double_t time=timestamp[stamp_seq[num-1]];
-    delete[] stamp_seq;
-    //DEBUG_BRIEF("End by default\n");
-    return time;
+
+    // Normal Exit: Found a Solution
+    if(ret != DBL_MAX)
+        ret = timestamp[stamp_seq[num-1]];
+
+    delete [] stamp_seq;
+    delete [] circle_detect;
+    delete [] separator;
+    return ret;
 }
 
 SchGA::~SchGA() {

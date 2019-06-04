@@ -135,7 +135,6 @@ void SchGADemoRandom(const char* recorderName) {
         for(uint32_t queueNo = 0; queueNo < queueNum; queueNo++) {
             printf("%d ", queueLen[queueNo]);
         }
-        break;
         printf("\n\tAccept?(y/n) ");
         scanf("%c", &acceptRecv);
         if(acceptRecv == 'Y' | acceptRecv == 'y') break;
@@ -156,17 +155,6 @@ void SchGADemoRandom(const char* recorderName) {
 
     randomFlightState(&flightState);
     randomTask(&task);
-
-    /*
-    printf("Flight Data:\n");
-    for(uint32_t i = 0; i < flightNum; i++) {
-        printf("%f %f %f\n", flightState.flightState[i].x, flightState.flightState[i].y, flightState.flightState[i].deg);
-    }
-    printf("Task Data:\n");
-    for(uint32_t i = 0; i < queueNum; i++) {
-        printf("%f %f %f\n", task.taskQueue[i].tasks[0].x, task.taskQueue[i].tasks[0].y, task.taskQueue[i].tasks[0].deg);
-    }
-    */
 
     delete [] queueLen;
 
@@ -207,13 +195,16 @@ void SchGADemoRandom(const char* recorderName) {
 }
 
 int main(int argc, char* argv[]) {
+
     std::cout << "Start" << std::endl;
+
     if(argc != 2) {
-        std::cout << "Usage: " << argv[0] << " Log File Name" << std::endl;
+        std::cout << "Usage: " << argv[0] << " CSV File Name" << std::endl;
         return -1;
     }
+
     SchGADemoRandom(argv[1]);
-    //SchGADemoStatic();
+
     std::cout << "Done" << std::endl;
 
     return 0;
