@@ -96,6 +96,11 @@ SchGA::SchGA(
     _recorder << "Iter," << "FeasibleCnt," << "BestFitness," 
         << "FitnessAvg," << "FitnessVar," << "DistantAvg," 
        << "DistantVar," << "Saved" << std::endl;
+    
+    // Preallocate the memory for the _timeCompute()
+    __timeStampSeq = new uint32_t[_taskTable->totalNum];
+    __timeSeparator = new uint32_t[_taskTable->queueNum];
+    __timeCircleDetect = new bool[_taskTable->totalNum];
 }
 
 void SchGA::_generateInitGene() {
@@ -426,6 +431,7 @@ void SchGA::evaluate(
             uint32_t bestEngineNo = 0;
             searchBestFitness = DBL_MAX;
 
+            DEBUG_BRIEF("Engine Searching...\n");
             for(uint32_t engineNo = 0; engineNo < SEARCH_ENGINE_NUM; engineNo++) {
                 bool updated;
                 uint32_t engineSearchIter = 0;
@@ -565,7 +571,9 @@ void SchGA::evaluate(
             }
             DEBUG_BRIEF("Average Distance to the Best Gene: %f\n", static_cast<double>(distAvg)); 
             DEBUG_BRIEF("Distance Variance to the Best Gene: %f\n", static_cast<double>(distVar)); 
+#ifdef ADVANCED_FEATURE
             DEBUG_BRIEF("Seq Saved: %d\n", _saveCnt);
+#endif
             if(_feasibleGeneCnt != 0) {
                 DEBUG_BRIEF("Best Fitness %f\n", static_cast<double>(_bestFitness));
             }
@@ -670,84 +678,69 @@ bool check(uint32_t arg, double_t* stamp, uint32_t* division, uint32_t num){
         if(arg == division[i])
             return true;
     }
-    bool t1;
-    if(arg > 0){
-        t1 = stamp[arg-1] <= stamp[arg];
-    }
+    if(arg > 0)
+        return stamp[arg-1] <= stamp[arg];
     else
-        t1 = true;
-    return t1;
+        return true;
 }
 
-uint32_t* argsort(double_t* array, uint32_t size){
-    uint32_t len = size;
-    uint32_t* array_index = new uint32_t[len];
-
-    for(uint32_t i = 0; i < len; i++)
+uint32_t* argsort(double_t* array, uint32_t* array_index, uint32_t size){
+    for(uint32_t i = 0; i < size; i++)
         array_index[i] = i;
 
-    std::sort(array_index, array_index+len,
-              [&array](uint32_t pos1, uint32_t pos2) {return (array[pos1] < array[pos2]);});
+    std::sort(array_index, array_index + size, 
+        [&array](uint32_t pos1, uint32_t pos2) { 
+            return (array[pos1] < array[pos2]);
+        }
+    );
 
     return array_index;
 }
 
 double_t SchGA::_timeCompute(double_t* timestamp, uint32_t* flightNo, uint32_t max_step){
     uint32_t num = _taskTable->totalNum;
-    uint32_t separator_num = _taskTable->queueNum;
-    uint32_t* separator = new uint32_t[separator_num];
-    uint32_t temp = 0;
-    bool* circle_detect = new bool[num];
-    double_t ret = 0;
 
-    std::fill(circle_detect, circle_detect + num, false);
-    for(uint32_t i = 0; i < separator_num; i++){
-        separator[i] = temp;
-        temp += _taskTable->taskQueue[i].num;
+    std::fill(__timeCircleDetect, __timeCircleDetect + num, false);
+    __timeSeparator[0] = 0;
+    for(uint32_t i = 1; i < _taskTable->queueNum; i++){
+        __timeSeparator[i] = __timeSeparator[i - 1] + _taskTable->taskQueue[i - 1].num;
     }
-    uint32_t* stamp_seq = argsort(timestamp, num);
+    argsort(timestamp, __timeStampSeq, num);
     uint32_t step = 0;
     for(uint32_t i = 0; i < num; i++) {
         if(step > max_step){
             // Unsolvable within a limited steps
-            ret = DBL_MAX;
-            break;
+            return DBL_MAX;
         }
-        bool t = check(stamp_seq[i], timestamp, separator, separator_num);
-        if(!t){
-            if(circle_detect[stamp_seq[i]] == true){
+        if(!check(__timeStampSeq[i], timestamp, __timeSeparator, _taskTable->queueNum)){
+            if(__timeCircleDetect[__timeStampSeq[i]] == true){
                 // Found circular dependency
-                ret = DBL_MAX;
-                break;
+                return DBL_MAX;
             }
             else
-                circle_detect[stamp_seq[i]] = true;
+                __timeCircleDetect[__timeStampSeq[i]] = true;
             step++;
-            double_t diff = timestamp[stamp_seq[i]-1]-timestamp[stamp_seq[i]];
-            double_t current = timestamp[stamp_seq[i]];
+            double_t diff = timestamp[__timeStampSeq[i]-1]-timestamp[__timeStampSeq[i]];
+            double_t current = timestamp[__timeStampSeq[i]];
             for(uint32_t j = i; j < num; j++){
-                if((flightNo[stamp_seq[j]] == flightNo[stamp_seq[i]])&&
-                   (timestamp[stamp_seq[j]] >= current))
-                    timestamp[stamp_seq[j]] += diff;
+                if((flightNo[__timeStampSeq[j]] == flightNo[__timeStampSeq[i]]) &&
+                   (timestamp[__timeStampSeq[j]] >= current))
+                    timestamp[__timeStampSeq[j]] += diff;
             }
-            delete[] stamp_seq;
-            stamp_seq = argsort(timestamp, num);
-            i-=1;
+            argsort(timestamp, __timeStampSeq, num);
+            i--;
         }
     }
 
     // Normal Exit: Found a Solution
-    if(ret != DBL_MAX)
-        ret = timestamp[stamp_seq[num-1]];
-
-    delete [] stamp_seq;
-    delete [] circle_detect;
-    delete [] separator;
-    return ret;
+    return timestamp[__timeStampSeq[num - 1]];
 }
 
 SchGA::~SchGA() {
     _recorder.close();
+    delete [] __timeStampSeq;
+    delete [] __timeSeparator;
+    delete [] __timeCircleDetect;
     delete [] _fitness;
     delete [] _gene;
     delete [] _nextGene;
