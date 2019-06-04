@@ -13,6 +13,17 @@ if (OPENMP_FOUND)
 endif()
 #SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2")
 
+option(PRINT_INFO "Print debug info." ON)
+option(ADVANCED_FEATURE "Enable advanced features." ON)
+
+if(PRINT_INFO)
+    add_definitions(-D__DEBUG__)
+endif(PRINT_INFO)
+
+if(ADVANCED_FEATURE)
+    add_definitions(-DADVANCED_FEATURE)
+endif(ADVANCED_FEATURE)
+
 include_directories(Include)
 
 add_executable(

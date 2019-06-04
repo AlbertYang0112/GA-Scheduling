@@ -11,8 +11,6 @@ extern "C" {
 #include "dubins.h"
 };
 
-#define __DEBUG__
-#define ADVANCED_FEATURE
 
 class SchGA: public GA {
 public:
@@ -57,35 +55,54 @@ private:
     uint32_t _distance(uint32_t* pGeneA, uint32_t* pGeneB);
     uint32_t _selectByDistant(uint32_t** geneList, uint32_t minDist, uint32_t num);
 
+    // Gene Storage: Ping-pong buffer
+    uint32_t *_gene;
+    uint32_t *_nextGene;
+
+    // Fitness Buffer
+    double_t *_fitness;
+
+    // Path Buffer
+    DubinsPath* _path;
+    uint32_t _numPath;
+
+    // Parameters
     TASK *_taskTable;
     TASK_PARAMETER *_taskParamTable;
     FLIGHT_STATE *_initialFlightState;
     uint32_t _population;
-    uint32_t *_gene;
-    uint32_t *_nextGene;
     uint32_t _geneLength;
-    uint32_t* _bestGene;
-    double_t _bestFitness;
-    bool _bestFitnessUpdated;
-    uint32_t _feasibleGeneCnt;
     uint32_t _crossRate;
     uint32_t _mutationRate;
-    uint32_t _saveCnt;
-    double_t *_fitness;
     double_t _rho;
-    std::mt19937 _rng;
 #ifdef ADVANCED_FEATURE
     static const uint32_t PRESERVED_SLOT = 6;
     static const uint32_t SEARCH_ENGINE_NUM = 5;
     static const uint32_t TABOO_LIST_LEN = 5;
-    std::vector<SearchEngine> _searchEngines;
 #else
     static const uint32_t PRESERVED_SLOT = 6;
 #endif
+
+    // Signals
+    bool _bestFitnessUpdated;
+
+    // Statistic Data
+    uint32_t* _bestGene;
+    double_t _bestFitness;
+    uint32_t _feasibleGeneCnt;
+    uint32_t _saveCnt;
+
+    // Submodules
+    std::mt19937 _rng;
+#ifdef ADVANCED_FEATURE
+    std::vector<SearchEngine> _searchEngines;
+#endif
     std::ofstream _recorder;
 
-    DubinsPath* _path;
-    uint32_t _numPath;
+    // Preallocated Buffer for time computation
+    uint32_t* __timeSeparator;
+    bool* __timeCircleDetect;
+    uint32_t* __timeStampSeq;
 };
 
 
