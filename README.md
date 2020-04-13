@@ -19,6 +19,20 @@
   - UAV follows the *Dubins Path*;
   - The task in sequence must be executed in order;
   - No collision between UAV.
+  
+## Experiment Result
+
+### Scheduled Path Length
+
+We choose CGA as the baseline. The fitness is the sum of length of all the UAVs.
+
+![](https://github.com/AlbertYoung0112/GA-Scheduling/blob/master/Shortest%20Total%20Flight%20Distance.png?raw=true)
+
+### Average Gene-Distance to the Best Gene
+
+We use the average gene-distance to evaluate the ability of our algorithm to explore the entire space, the higher, the better.
+
+![](https://github.com/AlbertYoung0112/GA-Scheduling/blob/master/Average%20Differences%20to%20the%20Best%20Solution.png?raw=true)
 
 ## Our Work
 - NaiveGA
